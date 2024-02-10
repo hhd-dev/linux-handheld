@@ -90,6 +90,7 @@ source=(
 
   # # Also set the PS controller bluetooth polling rate to 1000Hz
   # set-ps4-bt-poll-rate-1000hz.patch
+  config
 )
 validpgpkeys=(
   ABAF11C65A2970B130ABE3C479BE3E4300411886  # Linus Torvalds
@@ -120,7 +121,8 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '4c574391fac5f00b10981022321608f2bb655ea15a6ff0ffdcb4f096161683f6'
             'd8bf9fa316fb6a5057f38ebf2ed55c9678b9c1fde52c0b46f72b8e8d8721ec6f'
             'f528e75c615c571a42861eb56c15ede9f6b81c2e64fe017a518282ea18e54c21'
-            '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d')
+            '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d'
+            '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
