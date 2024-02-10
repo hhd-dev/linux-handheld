@@ -32,9 +32,6 @@ source=(
   # 0003-Default-to-maximum-amount-of-ASLR-bits.patch
   # 0005-fix-doc-build.patch
 
-  legion-go-display-quirk.patch
-  legion-go-controllers.patch
-
   # linux-fsync patches
   tkg.patch
   fsync.patch
@@ -74,6 +71,10 @@ source=(
   steamdeck-oled-bt.patch
   steamdeck-oled-audio.patch
   steamdeck-oled-hw-quirks.patch
+
+  # legion go upstream patches
+  legion-go-display-quirk.patch
+  legion-go-controllers.patch
 
   # temporary patches
   0001-Remove-REBAR-size-quirk-for-Sapphire-RX-5600-XT-Puls.patch
@@ -120,6 +121,8 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '5c382998db205310f2372b1c65a56012564b8125fbd4dfe7b108ef7441643f6e'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
             'ead752b5088b04b38d1fcdb98cb6e6d6545ee736e71a56b3dd4466198e7b8325'
+            '6680266ef50333fae7a10684ac8de9dc6c255b1288d5717501d5819a28b7cb9b'
+            '252799ea936a10a0089d9c4a776ae4ee96f1de00c86a47a494b649d5b0835c7e'
             '064bd6de567bd5ec7b9b6c5562fb360e247373971a77cd98ff97c4e3356589a8'
             '4c574391fac5f00b10981022321608f2bb655ea15a6ff0ffdcb4f096161683f6'
             'd8bf9fa316fb6a5057f38ebf2ed55c9678b9c1fde52c0b46f72b8e8d8721ec6f'
