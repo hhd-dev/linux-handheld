@@ -74,7 +74,7 @@ source=(
 
   # legion go upstream patches
   legion-go-display-quirk.patch
-  # legion-go-controllers.patch
+  legion-go-controllers.patch
 
   # temporary patches
   0001-Remove-REBAR-size-quirk-for-Sapphire-RX-5600-XT-Puls.patch
