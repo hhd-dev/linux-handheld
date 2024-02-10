@@ -32,6 +32,9 @@ source=(
   # 0003-Default-to-maximum-amount-of-ASLR-bits.patch
   # 0005-fix-doc-build.patch
 
+  legion-go-display-quirk.patch
+  legion-go-controllers.patch
+
   # linux-fsync patches
   tkg.patch
   fsync.patch
