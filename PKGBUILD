@@ -1,6 +1,4 @@
-# Maintainer: Andreas Radke <andyrtr@archlinux.org>
-
-pkgbase=linux-custom
+pkgbase=linux-legiongo
 pkgver=6.6.14
 pkgrel=1
 pkgdesc='LTS Linux'

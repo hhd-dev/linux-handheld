@@ -33,6 +33,6 @@
 !0001-Revert-nvme-pci-drop-redundant-pci_enable_pcie_error.patch
 !0001-Set-amdgpu.ppfeaturemask-0xffffffff-as-default.patch
 
-!README
+!readme.md
 !config
 !.gitignore
