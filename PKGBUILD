@@ -163,7 +163,7 @@ prepare() {
 build() {
   cd $_srcname
   make all
-  make htmldocs
+  # make htmldocs
 }
 
 _package() {
@@ -255,8 +255,8 @@ _package-headers() {
     rm -r "$arch"
   done
 
-  echo "Removing documentation..."
-  rm -r "$builddir/Documentation"
+  # echo "Removing documentation..."
+  # rm -r "$builddir/Documentation"
 
   echo "Removing broken symlinks..."
   find -L "$builddir" -type l -printf 'Removing %P\n' -delete
