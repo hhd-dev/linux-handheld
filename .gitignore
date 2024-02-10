@@ -5,6 +5,9 @@
 !0003-Default-to-maximum-amount-of-ASLR-bits.patch
 !0005-fix-doc-build.patch
 
+!legion-go-controllers.patch
+!legion-go-display-quirk.patch
+
 !tkg.patch
 !fsync.patch
 !amdgpu-si-cik-default.patch
