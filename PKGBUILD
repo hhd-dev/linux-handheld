@@ -27,9 +27,9 @@ _srcname=linux-$pkgver
 _srctag=v$pkgver
 source=(
   https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/${_srcname}.tar.{xz,sign}
-  0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-C.patch
-  0002-skip-simpledrm-if-nvidia-drm.modeset=1-is.patch
-  0003-Default-to-maximum-amount-of-ASLR-bits.patch
+  # 0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-C.patch
+  # 0002-skip-simpledrm-if-nvidia-drm.modeset=1-is.patch
+  # 0003-Default-to-maximum-amount-of-ASLR-bits.patch
   0005-fix-doc-build.patch
 
   # linux-fsync patches
