@@ -2,7 +2,10 @@
 Simple Legion GO `PKGBUILD` for a kernel based on `linux-lts`
 with patches that fix the white flashing issue
 and frame halving on 60hz, as well as add in fsync.
-With these patches, the Legion Go is perfectly usable on Linux.
+It also backports the upcoming xpad and rotation patches, so you do not need
+to use the kernel param/udev xpad rule to use the legion go.
+With these patches, the Legion Go is up to par with Windows on Linux.
+Except for auto-vram still exhibiting issues.
 
 The patches were taken from https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/ , so if you are on a Fedora based distro, you
 can use that kernel instead.
