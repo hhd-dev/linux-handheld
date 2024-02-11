@@ -39,3 +39,6 @@
 !readme.md
 !config
 !.gitignore
+!keys
+!keys/pgp
+!keys/pgp/*
