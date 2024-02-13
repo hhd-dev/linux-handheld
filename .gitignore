@@ -44,3 +44,6 @@
 !keys/pgp/*
 !6.6
 !6.6/*.patch
+!6.6/keys
+!6.6/keys/pgp
+!6.6/keys/pgp/*
