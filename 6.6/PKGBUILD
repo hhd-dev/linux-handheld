@@ -61,6 +61,7 @@ source=(
 
   # ROG Ally
   asus-linux.patch
+  platform-x86-asus-wmi-disable-USB0-hub-on-ROG-Ally-before-suspend.patch
   v14.8-0001-HID-asus-fix-more-n-key-report-descriptors-if-.patch
   v14.8-0002-HID-asus-make-asus_kbd_init-generic-remove-rog.patch
   v14.8-0003-HID-asus-add-ROG-Ally-N-Key-ID-and-keycodes.patch
@@ -115,7 +116,7 @@ validpgpkeys=(
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
 sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             'SKIP'
-            '0b576020ab05b2b6241829ed87c6c9ff57ab1373a84848d572d20ee3de2b68eb'
+            '4bd788d6c91d64cca0848bbacdd6d310723746b5f9b7408706ddd2b95aacee17'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
             '53416467b21548773d1c531f83bcd5f807eeec1afaf6723578b0e706efece037'
@@ -132,7 +133,8 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '878dd43202bde383e2ada287b836b3026ce65cd014d0f0fadb787c5db4bf6d99'
             '5c3ac67f610eb26fb89fdf9704338728603b63771c17143568f7d13bf3f7bade'
             '65f9f99ca97dff0df9232dc1325f01575e2d97f34a33f4e6db3874e80cd3fcb6'
-            '4d5d5da7d2c249de84836c73e282f48f982ecfce3983d3a86f82091636653b87'
+            '6bad6680c8ee4c08407bf1cedeee2382cb95e000fa4de8dbebbf9b0f78fb343d'
+            '4b422549975fdbb10a5f79cea7e448ebd5dc4ad48d76a1a91a3b7b81577c3ba3'
             'b099ae83a3b561b8bff8b32b44b6f4835b99eb150c2314177aa0bc8ca96e2ead'
             '10b60663195a65ec3b0f50b49e4c0af952369ee5afe95e11a69ffccefc020eb2'
             '3c8b877dfaf85acf45b54c85a44fa269aa1512ea3781fe551cf6d4e2d69c992d'

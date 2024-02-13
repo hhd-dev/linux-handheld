@@ -1449,39 +1449,6 @@ index a2ff4242e623..f0d2be1ee4f1 100644
  }
  
  int module_sig_check(struct load_info *info, int flags)
-diff --git a/scripts/mod/modpost.c b/scripts/mod/modpost.c
-index ac4ef3e206bb..80ede130812c 100644
---- a/scripts/mod/modpost.c
-+++ b/scripts/mod/modpost.c
-@@ -23,6 +23,7 @@
- #include "modpost.h"
- #include "../../include/linux/license.h"
- #include "../../include/linux/module_symbol.h"
-+#include "../../include/generated/uapi/linux/version.h"
- 
- static bool module_enabled;
- /* Are we using CONFIG_MODVERSIONS? */
-@@ -2090,6 +2091,12 @@ static void write_buf(struct buffer *b, const char *fname)
- 	}
- }
- 
-+static void add_rhelversion(struct buffer *b, struct module *mod)
-+{
-+	buf_printf(b, "MODULE_INFO(rhelversion, \"%d.%d\");\n", RHEL_MAJOR,
-+		   RHEL_MINOR);
-+}
-+
- static void write_if_changed(struct buffer *b, const char *fname)
- {
- 	char *tmp;
-@@ -2150,6 +2157,7 @@ static void write_mod_c_file(struct module *mod)
- 	add_depends(&buf, mod);
- 	add_moddevtable(&buf, mod);
- 	add_srcversion(&buf, mod);
-+	add_rhelversion(&buf, mod);
- 
- 	ret = snprintf(fname, sizeof(fname), "%s.mod.c", mod->name);
- 	if (ret >= sizeof(fname)) {
 diff --git a/scripts/tags.sh b/scripts/tags.sh
 index a70d43723146..56d06b04f752 100755
 --- a/scripts/tags.sh
