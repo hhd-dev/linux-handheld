@@ -27,14 +27,17 @@ source=(
   # 0003-Default-to-maximum-amount-of-ASLR-bits.patch
   # 0005-fix-doc-build.patch
 
+  # Patch from redhat (the patches are based on a fedora kernel)
+  patch-6.6-redhat.patch
+
   #
   # linux-fsync patches
   #
   tkg.patch
   fsync.patch
-  # OpenRGB.patch # broken
+  OpenRGB.patch
   amdgpu-si-cik-default.patch
-  # winesync.patch # broken
+  winesync.patch
   tkg-BBRv2.patch
   tkg-bcachefs.patch
   tkg-misc-additions.patch
@@ -112,9 +115,12 @@ validpgpkeys=(
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
 sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             'SKIP'
+            '0b576020ab05b2b6241829ed87c6c9ff57ab1373a84848d572d20ee3de2b68eb'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
+            '53416467b21548773d1c531f83bcd5f807eeec1afaf6723578b0e706efece037'
             '65dcacafd156b33290f8b43a661b5ab09ed7583e4a1f2c6331b9155497233f60'
+            '8a632eb825a059fe28e870952ca39160cd4346e87c0f00494748c378bb4a2a6b'
             '1e368d0290978329562e19cba044794dd0d5e8e8a40a43086ff7fe1aa56afaf4'
             '7db5b4e6383323a8428835a13db38611e78799c93b35b6858ab30bab8855f745'
             '4183cd4cb1031d269eb3f459cdbfc3cd1c4726b5df08c493c41ee1610601f27c'
