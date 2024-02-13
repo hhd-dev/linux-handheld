@@ -1,23 +1,32 @@
-# Legion Go Kernel on Arch
-Simple Legion GO `PKGBUILD` for a kernel based on `linux-lts`
-with patches that fix the white flashing issue
+# Linux-Handheld for Arch
+A collection of patches for various devices made for Arch.
+Adds fixes for the Ally, Legion Go, and bmi160, bmi323 devices.
+Based on 6.6.14 linux-lts, with the patches from the Fedora 
+[kernel-fsync](https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/) kernel
+and some additional ones (such as the bmi160 fix for Ayaneo devices and others).
+
+For the Legion Go, fixes the white flashing issue
 and frame halving on 60hz, as well as add in fsync.
 It also backports the upcoming xpad and rotation patches, so you do not need
 to use the kernel param/udev xpad rule to use the legion go.
 With these patches, the Legion Go is up to par with Windows on Linux.
 Except for auto-vram still exhibiting issues.
 
-The patches were taken from https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/ , so if you are on a Fedora based distro, you
-can use that kernel instead.
+For the Ally, fixes the speakers, controller wake from sleep, includes the latest
+controller patch series, and the IMu patch series.
+
+Most of the patches were taken from https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/, 
+so if you are on a Fedora based distro, you can use that kernel instead.
+Although it misses some of the additional ones
 
 Instructions:
 ```bash
-git clone https://github.com/hhd-dev/linux-legiongo
-cd linux-legiongo/6.6
+git clone https://github.com/hhd-dev/linux-handheld
+cd linux-handheld/6.6
 
 makepkg -s
-sudo pacman -U linux-legiongo-6.6.14-1-x86_64.pkg.tar.zst
-sudo pacman -U linux-legiongo-headers-6.6.14-1-x86_64.pkg.tar.zst
+sudo pacman -U linux-handheld-6.6.14-1-x86_64.pkg.tar.zst
+sudo pacman -U linux-handheld-headers-6.6.14-1-x86_64.pkg.tar.zst
 ```
 
 The current version builds from kernel 6.6.14, since that was
