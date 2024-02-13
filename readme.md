@@ -25,8 +25,7 @@ git clone https://github.com/hhd-dev/linux-handheld
 cd linux-handheld/6.6
 
 makepkg -s
-sudo pacman -U linux-handheld-6.6.14-1-x86_64.pkg.tar.zst
-sudo pacman -U linux-handheld-headers-6.6.14-1-x86_64.pkg.tar.zst
+sudo pacman -U linux-handheld-*
 ```
 
 The current version builds from kernel 6.6.14, since that was
