@@ -1,7 +1,7 @@
-pkgbase=linux-legiongo
+pkgbase=linux-handheld
 pkgver=6.6.14
 pkgrel=1
-pkgdesc='LTS Linux'
+pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
 license=(GPL2)
@@ -15,58 +15,67 @@ makedepends=(
   python
   tar
   xz
-
-  # htmldocs
-  graphviz
-  imagemagick
-  python-sphinx
-  texlive-latexextra
 )
 options=('!strip')
 _srcname=linux-$pkgver
 _srctag=v$pkgver
 source=(
   https://cdn.kernel.org/pub/linux/kernel/v${pkgver%%.*}.x/${_srcname}.tar.{xz,sign}
+  # Patches from original `linux-lts`
   # 0001-ZEN-Add-sysctl-and-CONFIG-to-disallow-unprivileged-C.patch
   # 0002-skip-simpledrm-if-nvidia-drm.modeset=1-is.patch
   # 0003-Default-to-maximum-amount-of-ASLR-bits.patch
   # 0005-fix-doc-build.patch
 
+  #
   # linux-fsync patches
+  #
   tkg.patch
   fsync.patch
-  # OpenRGB.patch
+  # OpenRGB.patch # broken
   amdgpu-si-cik-default.patch
-  # winesync.patch
+  # winesync.patch # broken
   tkg-BBRv2.patch
   tkg-bcachefs.patch
   tkg-misc-additions.patch
   tkg-unprivileged-CLONE_NEWUSER.patch
-
-  # device specific patches
-  # linux-surface.patch
-  steam-deck.patch
-  steam-deck-valve15.patch
-  # asus-linux.patch
-  # lenovo-legion-laptop.patch
-  #  workaround for i915 getting stuck during async page flips on Nvidia PRIME systems
-  0001-drm-i915-quirks-disable-async-flipping-on-specific-d.patch
-  0002-drm-i915-add-kernel-parameter-to-disable-async-page-.patch
-  # ROG Ally
-  # rog-ally-audio-fix.patch
-  # ROG-ALLY-NCT6775-PLATFORM.patch
-  # v10-0001-HID-asus-fix-more-n-key-report-descriptors-if-n-.patch
-  # v10-0002-HID-asus-make-asus_kbd_init-generic-remove-rog_n.patch
-  # v10-0003-HID-asus-add-ROG-Ally-N-Key-ID-and-keycodes.patch
-  # v10-0004-HID-asus-add-ROG-Ally-xpad-settings.patch
-  # rog-ally-bmc150.patch
 
   # hdr: https://github.com/CachyOS/kernel-patches
   0001-amd-hdr.patch
   0001-add-acpi_call.patch
   uinput.patch
 
+  #
+  # Device specific patches
+  #
+  # linux-surface.patch
+  steam-deck.patch
+  steam-deck-valve15.patch
+  # lenovo-legion-laptop.patch # Not used for the go
+  #  workaround for i915 getting stuck during async page flips on Nvidia PRIME systems
+  0001-drm-i915-quirks-disable-async-flipping-on-specific-d.patch
+  0002-drm-i915-add-kernel-parameter-to-disable-async-page-.patch
+
+  # ROG Ally
+  asus-linux.patch
+  v14.8-0001-HID-asus-fix-more-n-key-report-descriptors-if-.patch
+  v14.8-0002-HID-asus-make-asus_kbd_init-generic-remove-rog.patch
+  v14.8-0003-HID-asus-add-ROG-Ally-N-Key-ID-and-keycodes.patch
+  v14.8-0004-HID-asus-add-ROG-Ally-xpad-settings.patch
+  # IMU (for the air too)
+  0001-iio-imu_Add_driver_for_BMI323_IMU.patch
+  0002-iio-imu-bmi323-Make-the-local-structures-static.patch
+  0003-iio-imu_Add_ROG_ALLY_bmi323-support.patch
+  0004-iio-imu-Load_ROG_ALLY_mount_matrix.patch
+  0005-iio-imu-ASUS-ROG-ALLY-force-INT1-IRQ.patch
+  ROG-ALLY-NCT6775-PLATFORM.patch
+  rog-ally-audio-fix.patch
+
+  # IMU for bmi160 devices with realtek id
+  bmi160_ayaneo.patch
+
   # steamdeck oled patches
+  # Also relevant for the go
   steamdeck-oled-wifi.patch
   steamdeck-oled-bt.patch
   steamdeck-oled-audio.patch
@@ -90,10 +99,10 @@ source=(
   # useful for setting polling rate of wired PS4/PS5 controller to 1000Hz
   # https://github.com/KarsMulder/Linux-Pollrate-Patch
   # https://gitlab.com/GloriousEggroll/nobara-images/-/issues/64
-  # 0001-Allow-to-set-custom-USB-pollrate-for-specific-device.patch
+  0001-Allow-to-set-custom-USB-pollrate-for-specific-device.patch
 
   # # Also set the PS controller bluetooth polling rate to 1000Hz
-  # set-ps4-bt-poll-rate-1000hz.patch
+  set-ps4-bt-poll-rate-1000hz.patch
   config
 )
 validpgpkeys=(
@@ -287,29 +296,9 @@ _package-headers() {
   ln -sr "$builddir" "$pkgdir/usr/src/$pkgbase"
 }
 
-# _package-docs() {
-#   pkgdesc="Documentation for the $pkgdesc kernel"
-
-#   cd $_srcname
-#   local builddir="$pkgdir/usr/lib/modules/$(<version)/build"
-
-#   echo "Installing documentation..."
-#   local src dst
-#   while read -rd '' src; do
-#     dst="${src#Documentation/}"
-#     dst="$builddir/Documentation/${dst#output/}"
-#     install -Dm644 "$src" "$dst"
-#   done < <(find Documentation -name '.*' -prune -o ! -type d -print0)
-
-#   echo "Adding symlink..."
-#   mkdir -p "$pkgdir/usr/share/doc"
-#   ln -sr "$builddir/Documentation" "$pkgdir/usr/share/doc/$pkgbase"
-# }
-
 pkgname=(
   "$pkgbase"
   "$pkgbase-headers"
-  # "$pkgbase-docs"
 )
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
