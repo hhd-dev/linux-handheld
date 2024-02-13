@@ -13,7 +13,7 @@ can use that kernel instead.
 Instructions:
 ```bash
 git clone https://github.com/hhd-dev/linux-legiongo
-cd linux-legiongo
+cd linux-legiongo/6.6
 
 makepkg -s
 sudo pacman -U linux-legiongo-6.6.14-1-x86_64.pkg.tar.zst
