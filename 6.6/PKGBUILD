@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.14
-pkgrel=2
+pkgrel=4
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -108,6 +108,7 @@ source=(
   # # Also set the PS controller bluetooth polling rate to 1000Hz
   set-ps4-bt-poll-rate-1000hz.patch
   config
+  config-handheld
 )
 validpgpkeys=(
   ABAF11C65A2970B130ABE3C479BE3E4300411886  # Linus Torvalds
@@ -160,7 +161,8 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d'
             '2ce395a990bd260c71f542faa91bf4f4480321f3db4035b49fddc10a73a7a5ae'
             '98a2a5d772b1e9a4eefea4807179fb277c9fca7858af2318e424567a7a9f5910'
-            '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0')
+            '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0'
+            '03a0aacc7c4df3a05aeb66deb8b703e505fee8c6ed613583b25152b41a8064e4')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
@@ -185,6 +187,12 @@ prepare() {
 
   echo "Setting config..."
   cp ../config .config
+  make olddefconfig
+  diff -u ../config .config || :
+
+  echo "Setting config..."
+  cp ../config .config
+  scripts/kconfig/merge_config.sh -m ../config ../config-handheld
   make olddefconfig
   diff -u ../config .config || :
 
