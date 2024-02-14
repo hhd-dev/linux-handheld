@@ -77,6 +77,8 @@ source=(
 
   # IMU for bmi160 devices with realtek id
   bmi160_ayaneo.patch
+  # IMU for bmi260
+  0001-iio-imu-Add-driver-for-Bosch-BMI260-IMU.patch
 
   # steamdeck oled patches
   # Also relevant for the go
@@ -107,6 +109,7 @@ source=(
 
   # # Also set the PS controller bluetooth polling rate to 1000Hz
   set-ps4-bt-poll-rate-1000hz.patch
+  
   config
   config-handheld
 )
@@ -148,6 +151,7 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             'cfcd5c177423df8b7b98b0500fe7ab0757f895ed945c33e205963f0069c7a3be'
             'e07b0abd9b2e66bd66de04942a0bd8c71ac6deaa6bf52c177be8a46659b34a10'
             'e2665414d2e6c4ad57bae59e99e88ceb86cb0c144591e5a22f3b9158995344fa'
+            '0f8f4e2743799c3ab9cfd28a780bf958e881ce03f3aaa2ed48c26de790d35ff4'
             '5a2aa1c97adef776c4c900f74a2bb096738f7736e590adf73803f3766edec74b'
             '5c382998db205310f2372b1c65a56012564b8125fbd4dfe7b108ef7441643f6e'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
@@ -162,7 +166,7 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '2ce395a990bd260c71f542faa91bf4f4480321f3db4035b49fddc10a73a7a5ae'
             '98a2a5d772b1e9a4eefea4807179fb277c9fca7858af2318e424567a7a9f5910'
             '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0'
-            '03a0aacc7c4df3a05aeb66deb8b703e505fee8c6ed613583b25152b41a8064e4')
+            'ba7fd2deb02dafc658f16d18f0777d7129b604c0c517efac21e554fffa9350a6')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase
