@@ -38,8 +38,8 @@ index 52a155ff3250..1797f67c2a57 100644
  
  source "drivers/iio/imu/bmi160/Kconfig"
 +source "drivers/iio/imu/bmi260/Kconfig"
- source "drivers/iio/imu/bmi323/Kconfig"
  source "drivers/iio/imu/bno055/Kconfig"
+ source "drivers/iio/imu/bmi323/Kconfig"
  
 diff --git a/drivers/iio/imu/bmi260/Kconfig b/drivers/iio/imu/bmi260/Kconfig
 new file mode 100644

@@ -1,0 +1,40 @@
+From: Meng Li @ 2024-01-19  9:04 UTC (permalink / raw)
+  To: Rafael J . Wysocki, Borislav Petkov, Huang Rui
+  Cc: linux-pm, linux-kernel, x86, linux-acpi, Shuah Khan,
+	linux-kselftest, Nathan Fontenot, Deepak Sharma, Alex Deucher,
+	Mario Limonciello, Shimmer Huang, Perry Yuan, Xiaojian Du,
+	Viresh Kumar, Borislav Petkov, Oleksandr Natalenko, Meng Li,
+	Perry Yuan
+
+amd-pstate driver also uses SCHED_MC_PRIO, so decouple the requirement
+of CPU_SUP_INTEL from the dependencies to allow compilation in kernels
+without Intel CPU support.
+
+Tested-by: Oleksandr Natalenko <oleksandr@natalenko.name>
+Reviewed-by: Mario Limonciello <mario.limonciello@amd.com>
+Reviewed-by: Huang Rui <ray.huang@amd.com>
+Reviewed-by: Perry Yuan <perry.yuan@amd.com>
+Signed-off-by: Meng Li <li.meng@amd.com>
+Acked-by: Borislav Petkov (AMD) <bp@alien8.de>
+---
+ arch/x86/Kconfig | 5 +++--
+ 1 file changed, 3 insertions(+), 2 deletions(-)
+
+diff --git a/arch/x86/Kconfig b/arch/x86/Kconfig
+index 53f2e7797b1d..8dfb08ceb6ec 100644
+--- a/arch/x86/Kconfig
++++ b/arch/x86/Kconfig
+@@ -1051,8 +1051,9 @@ config SCHED_MC
+
+ config SCHED_MC_PRIO
+ 	bool "CPU core priorities scheduler support"
+-	depends on SCHED_MC && CPU_SUP_INTEL
+-	select X86_INTEL_PSTATE
++	depends on SCHED_MC
++	select X86_INTEL_PSTATE if CPU_SUP_INTEL
++	select X86_AMD_PSTATE if CPU_SUP_AMD && ACPI
+ 	select CPU_FREQ
+ 	default y
+ 	help
+--
+2.34.1

@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
-pkgver=6.6.14
-pkgrel=4
+pkgver=6.6.16
+pkgrel=1
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -28,20 +28,27 @@ source=(
   # 0005-fix-doc-build.patch
 
   # Patch from redhat (the patches are based on a fedora kernel)
-  patch-6.6-redhat.patch
 
   #
   # linux-fsync patches
   #
   tkg.patch
   fsync.patch
-  OpenRGB.patch
   amdgpu-si-cik-default.patch
   winesync.patch
   tkg-BBRv2.patch
   tkg-bcachefs.patch
   tkg-misc-additions.patch
   tkg-unprivileged-CLONE_NEWUSER.patch
+  
+  # Preferred Core
+  00011_cppc.patch
+  00012_cppc.patch
+  00013_cppc.patch
+  00014_cppc.patch
+  00015_cppc.patch
+  00016_cppc.patch
+  00017_cppc.patch
 
   # hdr: https://github.com/CachyOS/kernel-patches
   0001-amd-hdr.patch
@@ -60,7 +67,6 @@ source=(
   0002-drm-i915-add-kernel-parameter-to-disable-async-page-.patch
 
   # ROG Ally
-  asus-linux.patch
   platform-x86-asus-wmi-disable-USB0-hub-on-ROG-Ally-before-suspend.patch
   v14.8-0001-HID-asus-fix-more-n-key-report-descriptors-if-.patch
   v14.8-0002-HID-asus-make-asus_kbd_init-generic-remove-rog.patch
@@ -73,7 +79,6 @@ source=(
   0004-iio-imu-Load_ROG_ALLY_mount_matrix.patch
   0005-iio-imu-ASUS-ROG-ALLY-force-INT1-IRQ.patch
   ROG-ALLY-NCT6775-PLATFORM.patch
-  rog-ally-audio-fix.patch
 
   # IMU for bmi160 devices with realtek id
   bmi160_ayaneo.patch
@@ -109,7 +114,7 @@ source=(
 
   # # Also set the PS controller bluetooth polling rate to 1000Hz
   set-ps4-bt-poll-rate-1000hz.patch
-  
+
   config
   config-handheld
 )
@@ -118,18 +123,23 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
 )
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
-sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
+sha256sums=('b21d5795a3bead4f112916423222faa8a0f519e4201df343e3eb88dc9e4aaa30'
             'SKIP'
-            '4bd788d6c91d64cca0848bbacdd6d310723746b5f9b7408706ddd2b95aacee17'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
-            '53416467b21548773d1c531f83bcd5f807eeec1afaf6723578b0e706efece037'
             '65dcacafd156b33290f8b43a661b5ab09ed7583e4a1f2c6331b9155497233f60'
             '8a632eb825a059fe28e870952ca39160cd4346e87c0f00494748c378bb4a2a6b'
             '1e368d0290978329562e19cba044794dd0d5e8e8a40a43086ff7fe1aa56afaf4'
             '7db5b4e6383323a8428835a13db38611e78799c93b35b6858ab30bab8855f745'
             '4183cd4cb1031d269eb3f459cdbfc3cd1c4726b5df08c493c41ee1610601f27c'
             '3bc71559122c9c37dc7ca1f08148dd48978dd8d0ccdb1454c20a4308f0aa2e13'
+            '9ecea5f36aa9e7a3213626ec38dfd34c499a6945874888f5477275381741ab5e'
+            'f423cf1a24252c711608328e462047fe306e809cee912284ecfeae45af3abfaf'
+            'ee96f438ede0707eb874de914a3d9aad7060dcb41cbebde981a97018ff4ff23a'
+            '39c27e96cec6e882165e542e9d8f365b24826c63dce0fdd7a2b1ed71d7b40042'
+            'e941a9cd614455a973d129f8214c7e1c2e994cfc51402377eac9089b10ab4ae7'
+            '23bc94b5d24137663820d9c171f9aadc448b731bc765a54f101ea15c9fa21e5e'
+            'ad70fc7cf73dd58ff8c6c4266e91781b2ec576d2a25c2985da544dfd9b12ee50'
             '02347bc7d215f1cac1ba7b65eef9f88fc38c6dec535b425b45bfaa2f6e19e211'
             'ce73a89c7ce523d0009f1f384524587113db3d30f759d751203e68fef237b620'
             '5a3df4533db108a720386236b61f1b73ce157d3f303edc3d0f9e560cd7fd2768'
@@ -137,7 +147,6 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '878dd43202bde383e2ada287b836b3026ce65cd014d0f0fadb787c5db4bf6d99'
             '5c3ac67f610eb26fb89fdf9704338728603b63771c17143568f7d13bf3f7bade'
             '65f9f99ca97dff0df9232dc1325f01575e2d97f34a33f4e6db3874e80cd3fcb6'
-            '6bad6680c8ee4c08407bf1cedeee2382cb95e000fa4de8dbebbf9b0f78fb343d'
             '4b422549975fdbb10a5f79cea7e448ebd5dc4ad48d76a1a91a3b7b81577c3ba3'
             'b099ae83a3b561b8bff8b32b44b6f4835b99eb150c2314177aa0bc8ca96e2ead'
             '10b60663195a65ec3b0f50b49e4c0af952369ee5afe95e11a69ffccefc020eb2'
@@ -149,13 +158,12 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '5d7104b381925e85f4cdf8ab2017be23b151a3d94ac4321b3aa4cb8d3f611b6c'
             'e1ace3ca52faf0f6a60342bddfa8e22bd37a6bacaa8ad58beda653a049cfc3de'
             'cfcd5c177423df8b7b98b0500fe7ab0757f895ed945c33e205963f0069c7a3be'
-            'e07b0abd9b2e66bd66de04942a0bd8c71ac6deaa6bf52c177be8a46659b34a10'
             'e2665414d2e6c4ad57bae59e99e88ceb86cb0c144591e5a22f3b9158995344fa'
-            '0f8f4e2743799c3ab9cfd28a780bf958e881ce03f3aaa2ed48c26de790d35ff4'
+            '417aa555d4ae4e5b9ea88506ef05a3384874b3df4c4ae59f917370b2a60f7933'
             '5a2aa1c97adef776c4c900f74a2bb096738f7736e590adf73803f3766edec74b'
-            '5c382998db205310f2372b1c65a56012564b8125fbd4dfe7b108ef7441643f6e'
+            '586c168207af51b65e4a5e54e11f0cfce1e64cc27f4ab937d18f31e0a4024576'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
-            'ead752b5088b04b38d1fcdb98cb6e6d6545ee736e71a56b3dd4466198e7b8325'
+            'a74d2ae4c7318e1191c63c8c23e1d552812ac7d0cf11359a2da34ac336a5355e'
             '6680266ef50333fae7a10684ac8de9dc6c255b1288d5717501d5819a28b7cb9b'
             'e5e1a267dae61fa2a82d17b4f063a3c7bacbedf108d55ede3526f1121d299421'
             '064bd6de567bd5ec7b9b6c5562fb360e247373971a77cd98ff97c4e3356589a8'
@@ -166,7 +174,7 @@ sha256sums=('fbe96b2db3f962cd2a96a849d554300e7a4555995160082d4f323c2a1dfa1584'
             '2ce395a990bd260c71f542faa91bf4f4480321f3db4035b49fddc10a73a7a5ae'
             '98a2a5d772b1e9a4eefea4807179fb277c9fca7858af2318e424567a7a9f5910'
             '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0'
-            'ba7fd2deb02dafc658f16d18f0777d7129b604c0c517efac21e554fffa9350a6')
+            '77cad46fac939854395646992b1699c304575047abcb72e90e4f26e2e2b94b76')
 
 export KBUILD_BUILD_HOST=archlinux
 export KBUILD_BUILD_USER=$pkgbase

@@ -559,7 +559,7 @@ index 8256f80d468dd..fc58924e8a5e0 100644
 @@ -6572,7 +6572,8 @@ static int gfx_v10_0_compute_mqd_init(struct amdgpu_device *adev, void *m,
  	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, ENDIAN_SWAP, 1);
  #endif
- 	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, UNORD_DISPATCH, 0);
+ 	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, UNORD_DISPATCH, 1);
 -	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, TUNNEL_DISPATCH, 0);
 +	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, TUNNEL_DISPATCH,
 +			    prop->allow_tunneling);
@@ -573,7 +573,7 @@ index da21bf868080e..6d4dbb3f0e381 100644
 @@ -3795,7 +3795,8 @@ static int gfx_v11_0_compute_mqd_init(struct amdgpu_device *adev, void *m,
  	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, RPTR_BLOCK_SIZE,
  			    (order_base_2(AMDGPU_GPU_PAGE_SIZE / 4) - 1));
- 	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, UNORD_DISPATCH, 0);
+ 	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, UNORD_DISPATCH, 1);
 -	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, TUNNEL_DISPATCH, 0);
 +	tmp = REG_SET_FIELD(tmp, CP_HQD_PQ_CONTROL, TUNNEL_DISPATCH,
 +			    prop->allow_tunneling);
