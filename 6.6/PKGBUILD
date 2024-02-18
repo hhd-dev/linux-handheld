@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
-pkgver=6.6.16
-pkgrel=2
+pkgver=6.6.17
+pkgrel=1
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -124,7 +124,7 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
 )
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
-sha256sums=('b21d5795a3bead4f112916423222faa8a0f519e4201df343e3eb88dc9e4aaa30'
+sha256sums=('ee7650996ba75aa29fe66f309b413097f249a03e7001f2a41128c7c95205226a'
             'SKIP'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
