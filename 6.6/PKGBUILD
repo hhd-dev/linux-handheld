@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.16
-pkgrel=1
+pkgrel=2
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -51,7 +51,8 @@ source=(
   00017_cppc.patch
 
   # hdr: https://github.com/CachyOS/kernel-patches
-  0001-amd-hdr.patch
+  0001-HDR.patch # hdr from Chimeraos
+  # 0001-amd-hdr.patch # hdr from fsync
   0001-add-acpi_call.patch
   uinput.patch
 
@@ -140,7 +141,7 @@ sha256sums=('b21d5795a3bead4f112916423222faa8a0f519e4201df343e3eb88dc9e4aaa30'
             'e941a9cd614455a973d129f8214c7e1c2e994cfc51402377eac9089b10ab4ae7'
             '23bc94b5d24137663820d9c171f9aadc448b731bc765a54f101ea15c9fa21e5e'
             'ad70fc7cf73dd58ff8c6c4266e91781b2ec576d2a25c2985da544dfd9b12ee50'
-            '02347bc7d215f1cac1ba7b65eef9f88fc38c6dec535b425b45bfaa2f6e19e211'
+            'c590b0f2a9039662087ac4c205f17fc3daa51ac8c4bd0a2c3fdccc1b4d97b2b1'
             'ce73a89c7ce523d0009f1f384524587113db3d30f759d751203e68fef237b620'
             '5a3df4533db108a720386236b61f1b73ce157d3f303edc3d0f9e560cd7fd2768'
             'ab145b33869e83ef07012ead518a7eef52ac6c39a740712b0a37bf2dd15cef5a'
