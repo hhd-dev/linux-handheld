@@ -1,4 +1,4 @@
-From 62bf6c9fd63570c0f1473053bcb012719ac0ffc2 Mon Sep 17 00:00:00 2001
+From 3f6507504828019e2812df1d7930d782e2ddeb23 Mon Sep 17 00:00:00 2001
 From: Justin Weiss <justin@justinweiss.com>
 Date: Tue, 13 Feb 2024 21:28:09 -0800
 Subject: [PATCH] iio: imu: Add driver for Bosch BMI260 IMU
@@ -13,6 +13,7 @@ driver, and like that driver supports accelerometer and gyroscope
 reading, as well as data ready interrupts.
 ---
  drivers/iio/imu/Kconfig                       |   1 +
+ drivers/iio/imu/Makefile                      |   1 +
  drivers/iio/imu/bmi260/Kconfig                |  21 +
  drivers/iio/imu/bmi260/Makefile               |   6 +
  drivers/iio/imu/bmi260/bmi260.h               |  38 +
@@ -20,7 +21,7 @@ reading, as well as data ready interrupts.
  drivers/iio/imu/bmi260/bmi260_i2c.c           |  76 ++
  drivers/iio/imu/bmi260/third_party/LICENSE    |  32 +
  .../imu/bmi260/third_party/bmi260_config.h    | 693 +++++++++++++
- 8 files changed, 1847 insertions(+)
+ 9 files changed, 1848 insertions(+)
  create mode 100644 drivers/iio/imu/bmi260/Kconfig
  create mode 100644 drivers/iio/imu/bmi260/Makefile
  create mode 100644 drivers/iio/imu/bmi260/bmi260.h
@@ -40,6 +41,18 @@ index 52a155ff3250..1797f67c2a57 100644
 +source "drivers/iio/imu/bmi260/Kconfig"
  source "drivers/iio/imu/bno055/Kconfig"
  source "drivers/iio/imu/bmi323/Kconfig"
+ 
+diff --git a/drivers/iio/imu/Makefile b/drivers/iio/imu/Makefile
+index 7e2d7d5c3b7b..1d833ee7b9d7 100644
+--- a/drivers/iio/imu/Makefile
++++ b/drivers/iio/imu/Makefile
+@@ -15,6 +15,7 @@ adis_lib-$(CONFIG_IIO_ADIS_LIB_BUFFER) += adis_buffer.o
+ obj-$(CONFIG_IIO_ADIS_LIB) += adis_lib.o
+ 
+ obj-y += bmi160/
++obj-y += bmi260/
+ obj-y += bno055/
+ obj-y += bmi323/
  
 diff --git a/drivers/iio/imu/bmi260/Kconfig b/drivers/iio/imu/bmi260/Kconfig
 new file mode 100644
@@ -1931,5 +1944,4 @@ index 000000000000..1309c1bcd4cf
 +	0x00, 0xc1, 0x80, 0x2e, 0x00, 0xc1, 0xfd, 0x2d
 +};
 -- 
-2.43.1
-
+2.43.2
