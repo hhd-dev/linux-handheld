@@ -1,9 +1,13 @@
 # Linux-Handheld for Arch
 A collection of patches for various devices made for Arch.
-Adds fixes for the Ally, Legion Go, and bmi160, bmi323 devices.
-Based on 6.6.14 linux-lts, with the patches from the Fedora 
+Adds fixes for the Ally, Legion Go, and bmi160, bmi260, bmi323 devices.
+Based on 6.6 linux-lts, with the patches from the Fedora 
 [kernel-fsync](https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/) kernel
 and some additional ones (such as the bmi160 fix for Ayaneo devices and others).
+
+It includes the winesync patch series and the preferred core patch series from
+upstream, so it is a viable candidate instead of a newer 6.7+ kernel which
+might introduce additional regressions.
 
 For the Legion Go, fixes the white flashing issue
 and frame halving on 60hz, as well as add in fsync.
@@ -15,9 +19,10 @@ Except for auto-vram still exhibiting issues.
 For the Ally, fixes the speakers, controller wake from sleep, includes the latest
 controller patch series, and the IMu patch series.
 
-Most of the patches were taken from https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/, 
+A majority of the patches were taken from https://copr.fedorainfracloud.org/coprs/sentry/kernel-fsync/, 
 so if you are on a Fedora based distro, you can use that kernel instead.
-Although it misses some of the additional ones
+However, it misses the additional IMU patches required for certain
+handhelds to work, which are added on top.
 
 Instructions:
 ```bash
@@ -27,6 +32,3 @@ cd linux-handheld/6.6
 makepkg -s
 sudo pacman -U linux-handheld-*
 ```
-
-The current version builds from kernel 6.6.14, since that was
-the kernel used in fsync at the time of this writing.
