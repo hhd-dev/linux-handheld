@@ -1,5 +1,5 @@
 pkgbase=linux-handheld
-pkgver=6.6.18
+pkgver=6.6.19
 pkgrel=1
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
@@ -95,7 +95,9 @@ source=(
 
   # legion go upstream patches
   legion-go-display-quirk.patch
-  legion-go-controllers.patch
+  # legion-go-controllers.patch # part of 6.6.19!
+  # Legion Go IMU improvement
+  0001-amd-sfh-bump-sensitivity.patch
 
   # temporary patches
   0001-Remove-REBAR-size-quirk-for-Sapphire-RX-5600-XT-Puls.patch
@@ -124,7 +126,7 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
 )
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
-sha256sums=('4e43d8c5fba14f7c82597838011648056487b7550fd83276ad534559e8499b1d'
+sha256sums=('b5637e6b72c2b4b12e7db790bc155d141a9c2fe4b25f7b215410107e8747139a'
             'SKIP'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
@@ -166,7 +168,7 @@ sha256sums=('4e43d8c5fba14f7c82597838011648056487b7550fd83276ad534559e8499b1d'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
             'a74d2ae4c7318e1191c63c8c23e1d552812ac7d0cf11359a2da34ac336a5355e'
             '6680266ef50333fae7a10684ac8de9dc6c255b1288d5717501d5819a28b7cb9b'
-            'e5e1a267dae61fa2a82d17b4f063a3c7bacbedf108d55ede3526f1121d299421'
+            'b8f386f5966c9d891cc69830b9475931055e920ff5fb66ca95f1c3310ae05479'
             '064bd6de567bd5ec7b9b6c5562fb360e247373971a77cd98ff97c4e3356589a8'
             '4c574391fac5f00b10981022321608f2bb655ea15a6ff0ffdcb4f096161683f6'
             'd8bf9fa316fb6a5057f38ebf2ed55c9678b9c1fde52c0b46f72b8e8d8721ec6f'
