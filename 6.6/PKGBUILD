@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.22
-pkgrel=1
+pkgrel=2
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -99,6 +99,11 @@ source=(
   # Legion Go IMU improvement
   0001-amd-sfh-bump-sensitivity.patch
 
+  # Fan patch for most handhelds that use the EC for it
+  # https://gitlab.com/Samsagax/oxp-sensors/-/merge_requests/5
+  0001-oxp-sensors-dkms-align.patch
+  0002-oxp-sensors-other-devices.patch
+
   # temporary patches
   0001-Remove-REBAR-size-quirk-for-Sapphire-RX-5600-XT-Puls.patch
   mt76:-mt7921:-Disable-powersave-features-by-default.patch
@@ -169,6 +174,8 @@ sha256sums=('23e3e7b56407250f5411bdab95763d0bc4e3a19dfa431d951df7eacabd61a2f4'
             'a74d2ae4c7318e1191c63c8c23e1d552812ac7d0cf11359a2da34ac336a5355e'
             '6680266ef50333fae7a10684ac8de9dc6c255b1288d5717501d5819a28b7cb9b'
             'b8f386f5966c9d891cc69830b9475931055e920ff5fb66ca95f1c3310ae05479'
+            'ab137e8ce4b0d71bc75903f44c42d7863501d83ea409a10dfba3091507f422a5'
+            'b817ec47000423e0929fb6bc40e7e952938ce527194010f712b7b9078b04dd67'
             '064bd6de567bd5ec7b9b6c5562fb360e247373971a77cd98ff97c4e3356589a8'
             '4c574391fac5f00b10981022321608f2bb655ea15a6ff0ffdcb4f096161683f6'
             'd8bf9fa316fb6a5057f38ebf2ed55c9678b9c1fde52c0b46f72b8e8d8721ec6f'
