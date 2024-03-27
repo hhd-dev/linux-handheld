@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.22
-pkgrel=2
+pkgrel=3
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -49,6 +49,9 @@ source=(
   00015_cppc.patch
   00016_cppc.patch
   00017_cppc.patch
+  
+  # Scaling from 6.9
+  amd-pstate-freq.patch
 
   # hdr: https://github.com/CachyOS/kernel-patches
   0001-HDR.patch # hdr from Chimeraos
@@ -148,6 +151,7 @@ sha256sums=('23e3e7b56407250f5411bdab95763d0bc4e3a19dfa431d951df7eacabd61a2f4'
             'e941a9cd614455a973d129f8214c7e1c2e994cfc51402377eac9089b10ab4ae7'
             '23bc94b5d24137663820d9c171f9aadc448b731bc765a54f101ea15c9fa21e5e'
             'ad70fc7cf73dd58ff8c6c4266e91781b2ec576d2a25c2985da544dfd9b12ee50'
+            'a41420c280dafcde2b28116fc3bfa42f48e701c988fcba9607140aeca5aa4c4c'
             'c590b0f2a9039662087ac4c205f17fc3daa51ac8c4bd0a2c3fdccc1b4d97b2b1'
             'ce73a89c7ce523d0009f1f384524587113db3d30f759d751203e68fef237b620'
             '5a3df4533db108a720386236b61f1b73ce157d3f303edc3d0f9e560cd7fd2768'
@@ -207,16 +211,20 @@ prepare() {
     patch -Np1 < "../$src"
   done
 
-  echo "Setting config..."
-  cp ../config .config
-  make olddefconfig
-  diff -u ../config .config || :
-
-  echo "Setting config..."
-  cp ../config .config
-  scripts/kconfig/merge_config.sh -m ../config ../config-handheld
-  make olddefconfig
-  diff -u ../config .config || :
+  if [ -f "../../../.config" ]; then
+    echo "############################################"
+    echo "USING CUSTOMIZED CONFIG. DO NOT UPLOAD."
+    echo "############################################"
+    cp ../../../.config .config
+    make olddefconfig
+    diff -u ../../../.config .config || :
+  else
+    echo "Setting config..."
+    cp ../config .config
+    scripts/kconfig/merge_config.sh -m ../config ../config-handheld
+    make olddefconfig
+    diff -u ../config .config || :
+  fi
 
   make -s kernelrelease > version
   echo "Prepared $pkgbase version $(<version)"
