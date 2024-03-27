@@ -58,6 +58,7 @@ index 9a1e194d5cf8..8f308f56ade6 100644
  	.suspend	= amd_pstate_cpu_suspend,
  	.resume		= amd_pstate_cpu_resume,
 -	.set_boost	= amd_pstate_set_boost,
+ 	.update_limits	= amd_pstate_update_limits,
  	.name		= "amd-pstate",
  	.attr		= amd_pstate_attr,
  };
@@ -197,6 +198,7 @@ index 446394f84606..66d939a344b1 100644
  
  	u64	freq;
 -	bool	boost_supported;
+ 	bool	hw_prefcore;
  
  	/* EPP feature related attributes*/
  	s16	epp_policy;
@@ -346,6 +348,7 @@ index 0dc9124140d4..b37bea7440b9 100644
  cpufreq_freq_attr_ro(energy_performance_available_preferences);
  static DEVICE_ATTR_RW(status);
 +static DEVICE_ATTR_RW(cpb_boost);
+ static DEVICE_ATTR_RO(prefcore);
  
  static struct freq_attr *amd_pstate_attr[] = {
  	&amd_pstate_max_freq,
@@ -354,6 +357,7 @@ index 0dc9124140d4..b37bea7440b9 100644
  static struct attribute *pstate_global_attributes[] = {
  	&dev_attr_status.attr,
 +	&dev_attr_cpb_boost.attr,
+ 	&dev_attr_prefcore.attr,
  	NULL
  };
  
