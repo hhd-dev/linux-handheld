@@ -51,8 +51,11 @@ source=(
   00017_cppc.patch
 
   # Allow disabling boost on pstate
+  # https://www.phoronix.com/news/AMD-Core-Perf-Boost-Linux
+  # https://lore.kernel.org/linux-pm/cover.1706255676.git.perry.yuan@amd.com/
   # Needs to be applied after preferred core
   0001-amd-pstate-boost.patch
+  # A test that relies on the removed boost variable fails with this patch
   0002-amd-pstate-boost-fix-tests.patch
 
   # hdr: https://github.com/CachyOS/kernel-patches
