@@ -352,7 +352,9 @@ index 0dc9124140d4..b37bea7440b9 100644
  
  static struct freq_attr *amd_pstate_attr[] = {
  	&amd_pstate_max_freq,
-@@ -1062,6 +1158,7 @@ static struct freq_attr *amd_pstate_epp_attr[] = {
+--- a/drivers/cpufreq/amd-pstate.c
++++ b/drivers/cpufreq/amd-pstate.c
+@@ -1394,6 +1394,7 @@
  
  static struct attribute *pstate_global_attributes[] = {
  	&dev_attr_status.attr,
@@ -360,7 +362,6 @@ index 0dc9124140d4..b37bea7440b9 100644
  	&dev_attr_prefcore.attr,
  	NULL
  };
- 
 -- 
 2.34.1
 
