@@ -50,15 +50,16 @@ source=(
   00016_cppc.patch
   00017_cppc.patch
 
+  # Allow disabling boost on pstate
+  # Needs to be applied after preferred core
+  0001-amd-pstate-boost.patch
+  0002-amd-pstate-boost-fix-tests.patch
+
   # hdr: https://github.com/CachyOS/kernel-patches
   0001-HDR.patch # hdr from Chimeraos
   # 0001-amd-hdr.patch # hdr from fsync
   0001-add-acpi_call.patch
   uinput.patch
-  
-  # Allow disabling boost on pstate
-  # Needs to be applied after preferred core
-  amd-pstate-boost.patch
 
   #
   # Device specific patches
@@ -152,10 +153,11 @@ sha256sums=('23e3e7b56407250f5411bdab95763d0bc4e3a19dfa431d951df7eacabd61a2f4'
             'e941a9cd614455a973d129f8214c7e1c2e994cfc51402377eac9089b10ab4ae7'
             '23bc94b5d24137663820d9c171f9aadc448b731bc765a54f101ea15c9fa21e5e'
             'ad70fc7cf73dd58ff8c6c4266e91781b2ec576d2a25c2985da544dfd9b12ee50'
+            '0e440f246e21a860b753466bf5151e1300152a92aac74d3ddb9a5dfbbf9686af'
+            '164fd2d20154c9d2bfc6ef92c768e9b4eaa547b5eb257736a4c9b2e0f5e9bcd1'
             'c590b0f2a9039662087ac4c205f17fc3daa51ac8c4bd0a2c3fdccc1b4d97b2b1'
             'ce73a89c7ce523d0009f1f384524587113db3d30f759d751203e68fef237b620'
             '5a3df4533db108a720386236b61f1b73ce157d3f303edc3d0f9e560cd7fd2768'
-            '0e440f246e21a860b753466bf5151e1300152a92aac74d3ddb9a5dfbbf9686af'
             'ab145b33869e83ef07012ead518a7eef52ac6c39a740712b0a37bf2dd15cef5a'
             '5152b7cd6ae2d0ad11e567e238bc103a9cd96559715e32238a000b8b43d3f489'
             '5c3ac67f610eb26fb89fdf9704338728603b63771c17143568f7d13bf3f7bade'
