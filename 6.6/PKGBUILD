@@ -1,5 +1,5 @@
 pkgbase=linux-handheld
-pkgver=6.6.25
+pkgver=6.6.30
 pkgrel=1
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
@@ -100,9 +100,11 @@ source=(
   steamdeck-oled-bt.patch
   steamdeck-oled-audio.patch
   steamdeck-oled-hw-quirks.patch
+  # Fixes the OLED refresh rate issue
+  oled-deck-refresh-rate.patch
 
   # legion go upstream patches
-  legion-go-display-quirk.patch
+  # legion-go-display-quirk.patch # part of 6.6.30 (ish)!
   # legion-go-controllers.patch # part of 6.6.19!
   # Legion Go IMU improvement
   0001-amd-sfh-bump-sensitivity.patch
@@ -139,7 +141,7 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
 )
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
-sha256sums=('99d210be87908233a55b0fadc0dccd3b95926c0651b6b82e37350b2029de1f44'
+sha256sums=('b66a5b863b0f8669448b74ca83bd641a856f164b29956e539bbcb5fdeeab9cc6'
             'SKIP'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
@@ -182,7 +184,7 @@ sha256sums=('99d210be87908233a55b0fadc0dccd3b95926c0651b6b82e37350b2029de1f44'
             '586c168207af51b65e4a5e54e11f0cfce1e64cc27f4ab937d18f31e0a4024576'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
             'a74d2ae4c7318e1191c63c8c23e1d552812ac7d0cf11359a2da34ac336a5355e'
-            '6680266ef50333fae7a10684ac8de9dc6c255b1288d5717501d5819a28b7cb9b'
+            '9912955d6d26c8c3780b6656db131e8561ae93bc925582a6b94cc526b233fa18'
             'b8f386f5966c9d891cc69830b9475931055e920ff5fb66ca95f1c3310ae05479'
             'ab137e8ce4b0d71bc75903f44c42d7863501d83ea409a10dfba3091507f422a5'
             'b817ec47000423e0929fb6bc40e7e952938ce527194010f712b7b9078b04dd67'
