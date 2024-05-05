@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.30
-pkgrel=1
+pkgrel=2
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -49,6 +49,13 @@ source=(
   00015_cppc.patch
   00016_cppc.patch
   00017_cppc.patch
+
+  # Fast CPPC Option
+  # https://www.phoronix.com/news/AMD-Fast-CPPC-Linux-Patches
+  0000-cppc-fast.patch
+
+  # Amd seamless boot
+  0000-amd-seamless.patch
 
   # Allow disabling boost on pstate
   # https://www.phoronix.com/news/AMD-Core-Perf-Boost-Linux
@@ -158,6 +165,8 @@ sha256sums=('b66a5b863b0f8669448b74ca83bd641a856f164b29956e539bbcb5fdeeab9cc6'
             'e941a9cd614455a973d129f8214c7e1c2e994cfc51402377eac9089b10ab4ae7'
             '23bc94b5d24137663820d9c171f9aadc448b731bc765a54f101ea15c9fa21e5e'
             'ad70fc7cf73dd58ff8c6c4266e91781b2ec576d2a25c2985da544dfd9b12ee50'
+            'b5bc72eb2d93db0417b1de9e0c7b6391e01f5ea69e8964de91c4f1ef71190e43'
+            '25a60f32b4949339561431bbceaa9ae7c92b3975b78ab86b93ab2e0e076b6042'
             '0e440f246e21a860b753466bf5151e1300152a92aac74d3ddb9a5dfbbf9686af'
             '164fd2d20154c9d2bfc6ef92c768e9b4eaa547b5eb257736a4c9b2e0f5e9bcd1'
             'c590b0f2a9039662087ac4c205f17fc3daa51ac8c4bd0a2c3fdccc1b4d97b2b1'
@@ -215,7 +224,7 @@ prepare() {
     src="${src##*/}"
     src="${src%.zst}"
     [[ $src = *.patch ]] || continue
-    echo "----- Applying patch $src..."
+    echo "----- Applying patch ./$src"
     patch -Np1 < "../$src"
   done
 

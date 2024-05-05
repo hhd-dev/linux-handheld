@@ -1,0 +1,173 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 1/2] x86/cpufeatures: Add AMD FAST CPPC feature flag
+From: Perry Yuan <perry.yuan@amd.com>
+Date: Sun, 28 Apr 2024 17:11:32 +0800
+Message-Id: <20240428091133.592333-1-Xiaojian.Du@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Some AMD Zen 4 processors support a new feature FAST CPPC which
+allows for a faster CPPC loop due to internal architectual
+enhancements. The goal of this faster loop is higher performance
+at the same power consumption.
+
+Reference:
+Page 99 of PPR for AMD Family 19h Model 61h rev.B1
+https://www.amd.com/content/dam/amd/en/documents/processor-tech-docs/programmer-references/56713-B1_3_05.zip
+
+Signed-off-by: Perry Yuan <perry.yuan@amd.com>
+Signed-off-by: Xiaojian Du <Xiaojian.Du@amd.com>
+Reviewed-by: Borislav Petkov (AMD) <bp@alien8.de>
+---
+ arch/x86/include/asm/cpufeatures.h | 1 +
+ arch/x86/kernel/cpu/scattered.c    | 1 +
+ 2 files changed, 2 insertions(+)
+
+diff --git a/arch/x86/include/asm/cpufeatures.h b/arch/x86/include/asm/cpufeatures.h
+index 3c7434329661..6c128d463a14 100644
+--- a/arch/x86/include/asm/cpufeatures.h
++++ b/arch/x86/include/asm/cpufeatures.h
+@@ -470,6 +470,7 @@
+ #define X86_FEATURE_BHI_CTRL		(21*32+ 2) /* "" BHI_DIS_S HW control available */
+ #define X86_FEATURE_CLEAR_BHB_HW	(21*32+ 3) /* "" BHI_DIS_S HW control enabled */
+ #define X86_FEATURE_CLEAR_BHB_LOOP_ON_VMEXIT (21*32+ 4) /* "" Clear branch history at vmexit using SW loop */
++#define X86_FEATURE_FAST_CPPC		(21*32 + 5) /* "" AMD Fast CPPC */
+ 
+ /*
+  * BUG word(s)
+diff --git a/arch/x86/kernel/cpu/scattered.c b/arch/x86/kernel/cpu/scattered.c
+index af5aa2c754c2..9c273c231f56 100644
+--- a/arch/x86/kernel/cpu/scattered.c
++++ b/arch/x86/kernel/cpu/scattered.c
+@@ -51,6 +51,7 @@ static const struct cpuid_bit cpuid_bits[] = {
+ 	{ X86_FEATURE_PERFMON_V2,	CPUID_EAX,  0, 0x80000022, 0 },
+ 	{ X86_FEATURE_AMD_LBR_V2,	CPUID_EAX,  1, 0x80000022, 0 },
+ 	{ X86_FEATURE_AMD_LBR_PMC_FREEZE,	CPUID_EAX,  2, 0x80000022, 0 },
++	{ X86_FEATURE_FAST_CPPC,	CPUID_EDX,  15, 0x80000007, 0 },
+ 	{ 0, 0, 0, 0, 0 }
+ };
+ 
+-- 
+2.34.1
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH 2/2] cpufreq: amd-pstate: change cpu freq transition delay
+ for some models
+From: Xiaojian Du <Xiaojian.Du@amd.com>
+Date: Sun, 28 Apr 2024 17:11:33 +0800
+Message-Id: <20240428091133.592333-2-Xiaojian.Du@amd.com>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+Some of AMD ZEN4 APU/CPU have support for adjusting the CPU core
+clock more quickly and presicely according to CPU work loading.
+This is advertised by the Fast CPPC x86 feature.
+This change will only be effective in the *passive mode* of
+AMD pstate driver. From the test results of different
+transition delay values, 600us is chosen to make a balance
+between performance and power consumption.
+
+Some test results on AMD Ryzen 7840HS(Phoenix) APU:
+
+1. Tbench
+(Energy less is better, Throughput more is better,
+PPW--Performance per Watt more is better)
+============= =================== ============== =============== ============== =============== ============== =============== ===============
+ Trans Delay   Tbench              governor:schedutil, 3-iterations average
+============= =================== ============== =============== ============== =============== ============== =============== ===============
+ 1000us        Clients             1              2               4              8              12             16              32
+               Energy/Joules       2010           2804            8768           17171          16170          15132           15027
+               Throughput/(MB/s)   114            259             1041           3010           3135           4851            4605
+               PPW                 0.0567         0.0923          0.1187         0.1752         0.1938         0.3205          0.3064
+ 600us         Clients             1              2               4              8              12             16              32
+               Energy/Joules       2115  (5.22%)  2388  (-14.84%) 10700(22.03%)  16716 (-2.65%) 15939 (-1.43%) 15053 (-0.52%)  15083 (0.37% )
+               Throughput/(MB/s)   122   (7.02%)  234   (-9.65% ) 1188 (14.12%)  3003  (-0.23%) 3143  (0.26% ) 4842  (-0.19%)  4603  (-0.04%)
+               PPW                 0.0576(1.59%)  0.0979(6.07%  ) 0.111(-6.49%)  0.1796(2.51% ) 0.1971(1.70% ) 0.3216(0.34% )  0.3051(-0.42%)
+============= =================== ============== ================ ============= =============== ============== =============== ===============
+
+2.Dbench
+(Energy less is better, Throughput more is better,
+PPW--Performance per Watt more is better)
+============= =================== ============== =============== ============== =============== ============== =============== ===============
+ Trans Delay   Dbench              governor:schedutil, 3-iterations average
+============= =================== ============== =============== ============== =============== ============== =============== ===============
+ 1000us        Clients             1             2               4              8               12             16              32
+               Energy/Joules       4890          3779            3567           5157            5611           6500            8163
+               Throughput/(MB/s)   327           167             220            577             775            938             1397
+               PPW                 0.0668        0.0441          0.0616         0.1118          0.1381         0.1443          0.1711
+ 600us         Clients             1             2               4              8               12             16              32
+               Energy/Joules       4915  (0.51%) 4912  (29.98%)  3506  (-1.71%) 4907  (-4.85% ) 5011 (-10.69%) 5672  (-12.74%) 8141  (-0.27%)
+               Throughput/(MB/s)   348   (6.42%) 284   (70.06%)  220   (0.00% ) 518   (-10.23%) 712  (-8.13% ) 854   (-8.96% ) 1475  (5.58% )
+               PPW                 0.0708(5.99%) 0.0578(31.07%)  0.0627(1.79% ) 0.1055(-5.64% ) 0.142(2.82%  ) 0.1505(4.30%  ) 0.1811(5.84% )
+============= =================== ============== =============== ============== =============== ============== =============== ===============
+
+3.Hackbench(less time is better)
+============= =========================== ==========================
+  hackbench     governor:schedutil
+============= =========================== ==========================
+  Trans Delay   Process Mode Ave time(s)  Thread Mode Ave time(s)
+  1000us        14.484                      14.484
+  600us         14.418(-0.46%)              15.41(+6.39%)
+============= =========================== ==========================
+
+4.Perf_sched_bench(less time is better)
+============= =================== ============== ============== ============== =============== =============== =============
+ Trans Delay  perf_sched_bench    governor:schedutil
+============= =================== ============== ============== ============== =============== =============== =============
+  1000us        Groups             1             2              4              8               12              24
+                AveTime(s)        1.64          2.851          5.878          11.636          16.093          26.395
+  600us         Groups             1             2              4              8               12              24
+                AveTime(s)        1.69(3.05%)   2.845(-0.21%)  5.843(-0.60%)  11.576(-0.52%)  16.092(-0.01%)  26.32(-0.28%)
+============= ================== ============== ============== ============== =============== =============== ==============
+
+5.Sysbench(higher is better)
+============= ================== ============== ================= ============== ================ =============== =================
+  Sysbench    governor:schedutil
+============= ================== ============== ================= ============== ================ =============== =================
+  1000us      Thread             1               2                4              8                12               24
+              Ave events         6020.98         12273.39         24119.82       46171.57         47074.37         47831.72
+  600us       Thread             1               2                4              8                12               24
+              Ave events         6154.82(2.22%)  12271.63(-0.01%) 24392.5(1.13%) 46117.64(-0.12%) 46852.19(-0.47%) 47678.92(-0.32%)
+============= ================== ============== ================= ============== ================ =============== =================
+
+In conclusion, a shorter transition delay
+of cpu clock will make a quite positive effect to improve PPW on Dbench test,
+in the meanwhile , keep stable performance on Tbench,
+Hackbench, Perf_sched_bench and Sysbench.
+
+Signed-off-by: Xiaojian Du <Xiaojian.Du@amd.com>
+Reviewed-by: Mario Limonciello <mario.limonciello@amd.com>
+---
+ drivers/cpufreq/amd-pstate.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/drivers/cpufreq/amd-pstate.c b/drivers/cpufreq/amd-pstate.c
+index 2015c9fcc3c9..8c8594f67af6 100644
+--- a/drivers/cpufreq/amd-pstate.c
++++ b/drivers/cpufreq/amd-pstate.c
+@@ -50,6 +50,7 @@
+ 
+ #define AMD_PSTATE_TRANSITION_LATENCY	20000
+ #define AMD_PSTATE_TRANSITION_DELAY	1000
++#define AMD_PSTATE_FAST_CPPC_TRANSITION_DELAY	600
+ #define AMD_PSTATE_PREFCORE_THRESHOLD	166
+ 
+ /*
+@@ -868,7 +869,11 @@ static int amd_pstate_cpu_init(struct cpufreq_policy *policy)
+ 	}
+ 
+ 	policy->cpuinfo.transition_latency = AMD_PSTATE_TRANSITION_LATENCY;
+-	policy->transition_delay_us = AMD_PSTATE_TRANSITION_DELAY;
++
++	if (cpu_feature_enabled(X86_FEATURE_FAST_CPPC))
++		policy->transition_delay_us = AMD_PSTATE_FAST_CPPC_TRANSITION_DELAY;
++	else
++		policy->transition_delay_us = AMD_PSTATE_TRANSITION_DELAY;
+ 
+ 	policy->min = min_freq;
+ 	policy->max = max_freq;
+-- 
+2.34.1
+
