@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.32
-pkgrel=1
+pkgrel=3
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -26,8 +26,6 @@ source=(
   # 0002-skip-simpledrm-if-nvidia-drm.modeset=1-is.patch
   # 0003-Default-to-maximum-amount-of-ASLR-bits.patch
   # 0005-fix-doc-build.patch
-
-  # Patch from redhat (the patches are based on a fedora kernel)
 
   #
   # linux-fsync patches
@@ -65,6 +63,9 @@ source=(
   0003-atomic-cursor-plane.patch
   # Already part of 6.6
   # 0003-atomic-fb-null.patch
+
+  # Fix 6.6.31 regression on shutdown
+  0000-undo-shutdown-hang-opt.patch
 
   # Allow disabling boost on pstate
   # https://www.phoronix.com/news/AMD-Core-Perf-Boost-Linux
@@ -113,6 +114,7 @@ source=(
   # steamdeck oled patches
   # Also relevant for the go
   steamdeck-oled-wifi.patch
+  # Part of upstream 6.6 (at least partly)
   steamdeck-oled-bt.patch
   steamdeck-oled-audio.patch
   steamdeck-oled-hw-quirks.patch
@@ -181,6 +183,7 @@ sha256sums=('aaa824eaf07f61911d22b75ff090a403c3dd0bd73e23933e0bba8b5971436ce1'
             '3f51da66ee66e6189a637eb266e76e03fe3e2055786d9b836699b80b35132f00'
             '78e68e8599c1dd66ed00361a05f05cab54a4f2feac85fd2ff8989063bb9ec473'
             'fe92488c881243fe75e98e28b337856593ee78a0a2d411b4c70fe2b81088169c'
+            '14320b13909cc7f54f52eaddb4df6f0680efcdd1e5d034a84e6e350162d40215'
             '0e440f246e21a860b753466bf5151e1300152a92aac74d3ddb9a5dfbbf9686af'
             '164fd2d20154c9d2bfc6ef92c768e9b4eaa547b5eb257736a4c9b2e0f5e9bcd1'
             'c590b0f2a9039662087ac4c205f17fc3daa51ac8c4bd0a2c3fdccc1b4d97b2b1'
@@ -394,7 +397,7 @@ _package-headers() {
 
 pkgname=(
   "$pkgbase"
-  "$pkgbase-headers"
+  # "$pkgbase-headers"
 )
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
