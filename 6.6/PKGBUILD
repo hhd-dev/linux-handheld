@@ -115,7 +115,7 @@ source=(
   # Also relevant for the go
   steamdeck-oled-wifi.patch
   # Part of upstream 6.6 (at least partly)
-  steamdeck-oled-bt.patch
+  # steamdeck-oled-bt.patch
   steamdeck-oled-audio.patch
   steamdeck-oled-hw-quirks.patch
   # Fixes the OLED refresh rate issue
