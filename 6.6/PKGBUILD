@@ -207,7 +207,6 @@ sha256sums=('aaa824eaf07f61911d22b75ff090a403c3dd0bd73e23933e0bba8b5971436ce1'
             'e2665414d2e6c4ad57bae59e99e88ceb86cb0c144591e5a22f3b9158995344fa'
             '01ef224844fc06193626ec36bcd8614065258020810ee1b9cee6a8cdd27274b2'
             '5a2aa1c97adef776c4c900f74a2bb096738f7736e590adf73803f3766edec74b'
-            'd6ee8546f9437c966a8a741f6c60a02e28780a58c7d77d8f29212379db716f4c'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
             'a74d2ae4c7318e1191c63c8c23e1d552812ac7d0cf11359a2da34ac336a5355e'
             '9912955d6d26c8c3780b6656db131e8561ae93bc925582a6b94cc526b233fa18'
@@ -397,7 +396,7 @@ _package-headers() {
 
 pkgname=(
   "$pkgbase"
-  # "$pkgbase-headers"
+  "$pkgbase-headers"
 )
 for _p in "${pkgname[@]}"; do
   eval "package_$_p() {
