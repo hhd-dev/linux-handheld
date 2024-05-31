@@ -1,0 +1,277 @@
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v2 1/2] drm: extract closefb logic in separate function
+From: Simon Ser <contact@emersion.fr>
+Date: Fri, 20 Oct 2023 10:19:38 +0000
+Message-Id: <20231020101926.145327-1-contact@emersion.fr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 8bit
+
+drm_mode_rmfb performs two operations: drop the FB from the
+file_priv->fbs list, and make sure the FB is no longer used on a
+plane.
+
+In the next commit an IOCTL which only does so former will be
+introduced, so let's split it into a separate function.
+
+No functional change, only refactoring.
+
+v2: no change
+
+Signed-off-by: Simon Ser <contact@emersion.fr>
+Cc: Hans de Goede <hdegoede@redhat.com>
+Cc: Dennis Filder <d.filder@web.de>
+Cc: Daniel Vetter <daniel@ffwll.ch>
+Cc: Pekka Paalanen <ppaalanen@gmail.com>
+Cc: Rob Clark <robdclark@gmail.com>
+Cc: Sean Paul <seanpaul@chromium.org>
+Cc: Daniel Stone <daniels@collabora.com>
+Reviewed-by: Ville Syrjälä <ville.syrjala@linux.intel.com>
+Acked-by: Pekka Paalanen <pekka.paalanen@collabora.com>
+---
+ drivers/gpu/drm/drm_framebuffer.c | 51 +++++++++++++++++++------------
+ 1 file changed, 31 insertions(+), 20 deletions(-)
+
+diff --git a/drivers/gpu/drm/drm_framebuffer.c b/drivers/gpu/drm/drm_framebuffer.c
+index d3ba0698b84b..62306196808c 100644
+--- a/drivers/gpu/drm/drm_framebuffer.c
++++ b/drivers/gpu/drm/drm_framebuffer.c
+@@ -394,6 +394,31 @@ static void drm_mode_rmfb_work_fn(struct work_struct *w)
+ 	}
+ }
+ 
++static int drm_mode_closefb(struct drm_framebuffer *fb,
++			    struct drm_file *file_priv)
++{
++	struct drm_framebuffer *fbl = NULL;
++	bool found = false;
++
++	mutex_lock(&file_priv->fbs_lock);
++	list_for_each_entry(fbl, &file_priv->fbs, filp_head)
++		if (fb == fbl)
++			found = true;
++
++	if (!found) {
++		mutex_unlock(&file_priv->fbs_lock);
++		return -ENOENT;
++	}
++
++	list_del_init(&fb->filp_head);
++	mutex_unlock(&file_priv->fbs_lock);
++
++	/* Drop the reference that was stored in the fbs list */
++	drm_framebuffer_put(fb);
++
++	return 0;
++}
++
+ /**
+  * drm_mode_rmfb - remove an FB from the configuration
+  * @dev: drm device
+@@ -411,8 +436,7 @@ int drm_mode_rmfb(struct drm_device *dev, u32 fb_id,
+ 		  struct drm_file *file_priv)
+ {
+ 	struct drm_framebuffer *fb = NULL;
+-	struct drm_framebuffer *fbl = NULL;
+-	int found = 0;
++	int ret;
+ 
+ 	if (!drm_core_check_feature(dev, DRIVER_MODESET))
+ 		return -EOPNOTSUPP;
+@@ -421,23 +445,14 @@ int drm_mode_rmfb(struct drm_device *dev, u32 fb_id,
+ 	if (!fb)
+ 		return -ENOENT;
+ 
+-	mutex_lock(&file_priv->fbs_lock);
+-	list_for_each_entry(fbl, &file_priv->fbs, filp_head)
+-		if (fb == fbl)
+-			found = 1;
+-	if (!found) {
+-		mutex_unlock(&file_priv->fbs_lock);
+-		goto fail_unref;
++	ret = drm_mode_closefb(fb, file_priv);
++	if (ret != 0) {
++		drm_framebuffer_put(fb);
++		return ret;
+ 	}
+ 
+-	list_del_init(&fb->filp_head);
+-	mutex_unlock(&file_priv->fbs_lock);
+-
+-	/* drop the reference we picked up in framebuffer lookup */
+-	drm_framebuffer_put(fb);
+-
+ 	/*
+-	 * we now own the reference that was stored in the fbs list
++	 * We now own the reference we picked up in drm_framebuffer_lookup.
+ 	 *
+ 	 * drm_framebuffer_remove may fail with -EINTR on pending signals,
+ 	 * so run this in a separate stack as there's no way to correctly
+@@ -457,10 +472,6 @@ int drm_mode_rmfb(struct drm_device *dev, u32 fb_id,
+ 		drm_framebuffer_put(fb);
+ 
+ 	return 0;
+-
+-fail_unref:
+-	drm_framebuffer_put(fb);
+-	return -ENOENT;
+ }
+ 
+ int drm_mode_rmfb_ioctl(struct drm_device *dev,
+-- 
+2.42.0
+
+From git@z Thu Jan  1 00:00:00 1970
+Subject: [PATCH v2 2/2] drm: introduce CLOSEFB IOCTL
+From: Simon Ser <contact@emersion.fr>
+Date: Fri, 20 Oct 2023 10:19:45 +0000
+Message-Id: <20231020101926.145327-2-contact@emersion.fr>
+MIME-Version: 1.0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+
+This new IOCTL allows callers to close a framebuffer without
+disabling planes or CRTCs. This takes inspiration from Rob Clark's
+unref_fb IOCTL [1] and DRM_MODE_FB_PERSIST [2].
+
+User-space patch for wlroots available at [3]. IGT test available
+at [4].
+
+v2: add an extra pad field just in case we want to extend this IOCTL
+in the future (Pekka, Sima).
+
+[1]: https://lore.kernel.org/dri-devel/20170509153654.23464-1-robdclark@gmail.com/
+[2]: https://lore.kernel.org/dri-devel/20211006151921.312714-1-contact@emersion.fr/
+[3]: https://gitlab.freedesktop.org/wlroots/wlroots/-/merge_requests/4394
+[4]: https://lists.freedesktop.org/archives/igt-dev/2023-October/063294.html
+
+Signed-off-by: Simon Ser <contact@emersion.fr>
+Acked-by: Pekka Paalanen <pekka.paalanen@collabora.com>
+Cc: Hans de Goede <hdegoede@redhat.com>
+Cc: Dennis Filder <d.filder@web.de>
+Cc: Daniel Vetter <daniel@ffwll.ch>
+Cc: Rob Clark <robdclark@gmail.com>
+Cc: Sean Paul <seanpaul@chromium.org>
+Cc: Daniel Stone <daniels@collabora.com>
+Reviewed-by: Daniel Stone <daniels@collabora.com>
+---
+ drivers/gpu/drm/drm_crtc_internal.h |  2 ++
+ drivers/gpu/drm/drm_framebuffer.c   | 22 ++++++++++++++++++++++
+ drivers/gpu/drm/drm_ioctl.c         |  1 +
+ include/uapi/drm/drm.h              | 20 ++++++++++++++++++++
+ include/uapi/drm/drm_mode.h         | 10 ++++++++++
+ 5 files changed, 55 insertions(+)
+
+diff --git a/drivers/gpu/drm/drm_crtc_internal.h b/drivers/gpu/drm/drm_crtc_internal.h
+index 8556c3b3ff88..6b646e0783be 100644
+--- a/drivers/gpu/drm/drm_crtc_internal.h
++++ b/drivers/gpu/drm/drm_crtc_internal.h
+@@ -222,6 +222,8 @@ int drm_mode_addfb2_ioctl(struct drm_device *dev,
+ 			  void *data, struct drm_file *file_priv);
+ int drm_mode_rmfb_ioctl(struct drm_device *dev,
+ 			void *data, struct drm_file *file_priv);
++int drm_mode_closefb_ioctl(struct drm_device *dev,
++			   void *data, struct drm_file *file_priv);
+ int drm_mode_getfb(struct drm_device *dev,
+ 		   void *data, struct drm_file *file_priv);
+ int drm_mode_getfb2_ioctl(struct drm_device *dev,
+diff --git a/drivers/gpu/drm/drm_framebuffer.c b/drivers/gpu/drm/drm_framebuffer.c
+index 62306196808c..3fb3e29d4087 100644
+--- a/drivers/gpu/drm/drm_framebuffer.c
++++ b/drivers/gpu/drm/drm_framebuffer.c
+@@ -482,6 +482,28 @@ int drm_mode_rmfb_ioctl(struct drm_device *dev,
+ 	return drm_mode_rmfb(dev, *fb_id, file_priv);
+ }
+ 
++int drm_mode_closefb_ioctl(struct drm_device *dev,
++			   void *data, struct drm_file *file_priv)
++{
++	struct drm_mode_closefb *r = data;
++	struct drm_framebuffer *fb;
++	int ret;
++
++	if (!drm_core_check_feature(dev, DRIVER_MODESET))
++		return -EOPNOTSUPP;
++
++	if (r->pad)
++		return -EINVAL;
++
++	fb = drm_framebuffer_lookup(dev, file_priv, r->fb_id);
++	if (!fb)
++		return -ENOENT;
++
++	ret = drm_mode_closefb(fb, file_priv);
++	drm_framebuffer_put(fb);
++	return ret;
++}
++
+ /**
+  * drm_mode_getfb - get FB info
+  * @dev: drm device for the ioctl
+diff --git a/drivers/gpu/drm/drm_ioctl.c b/drivers/gpu/drm/drm_ioctl.c
+index 77590b0f38fa..44fda68c28ae 100644
+--- a/drivers/gpu/drm/drm_ioctl.c
++++ b/drivers/gpu/drm/drm_ioctl.c
+@@ -675,6 +675,7 @@ static const struct drm_ioctl_desc drm_ioctls[] = {
+ 	DRM_IOCTL_DEF(DRM_IOCTL_MODE_ADDFB, drm_mode_addfb_ioctl, 0),
+ 	DRM_IOCTL_DEF(DRM_IOCTL_MODE_ADDFB2, drm_mode_addfb2_ioctl, 0),
+ 	DRM_IOCTL_DEF(DRM_IOCTL_MODE_RMFB, drm_mode_rmfb_ioctl, 0),
++	DRM_IOCTL_DEF(DRM_IOCTL_MODE_CLOSEFB, drm_mode_closefb_ioctl, 0),
+ 	DRM_IOCTL_DEF(DRM_IOCTL_MODE_PAGE_FLIP, drm_mode_page_flip_ioctl, DRM_MASTER),
+ 	DRM_IOCTL_DEF(DRM_IOCTL_MODE_DIRTYFB, drm_mode_dirtyfb_ioctl, DRM_MASTER),
+ 	DRM_IOCTL_DEF(DRM_IOCTL_MODE_CREATE_DUMB, drm_mode_create_dumb_ioctl, 0),
+diff --git a/include/uapi/drm/drm.h b/include/uapi/drm/drm.h
+index 794c1d857677..731c8f598882 100644
+--- a/include/uapi/drm/drm.h
++++ b/include/uapi/drm/drm.h
+@@ -1198,6 +1198,26 @@ extern "C" {
+ 
+ #define DRM_IOCTL_SYNCOBJ_EVENTFD	DRM_IOWR(0xCF, struct drm_syncobj_eventfd)
+ 
++/**
++ * DRM_IOCTL_MODE_CLOSEFB - Close a framebuffer.
++ *
++ * This closes a framebuffer previously added via ADDFB/ADDFB2. The IOCTL
++ * argument is a framebuffer object ID.
++ *
++ * This IOCTL is similar to &DRM_IOCTL_MODE_RMFB, except it doesn't disable
++ * planes and CRTCs. As long as the framebuffer is used by a plane, it's kept
++ * alive. When the plane no longer uses the framebuffer (because the
++ * framebuffer is replaced with another one, or the plane is disabled), the
++ * framebuffer is cleaned up.
++ *
++ * This is useful to implement flicker-free transitions between two processes.
++ *
++ * Depending on the threat model, user-space may want to ensure that the
++ * framebuffer doesn't expose any sensitive user information: closed
++ * framebuffers attached to a plane can be read back by the next DRM master.
++ */
++#define DRM_IOCTL_MODE_CLOSEFB		DRM_IOWR(0xD0, struct drm_mode_closefb)
++
+ /*
+  * Device specific ioctls should only be in their respective headers
+  * The device specific ioctl range is from 0x40 to 0x9f.
+diff --git a/include/uapi/drm/drm_mode.h b/include/uapi/drm/drm_mode.h
+index ea1b639bcb28..f23397877a80 100644
+--- a/include/uapi/drm/drm_mode.h
++++ b/include/uapi/drm/drm_mode.h
+@@ -1311,6 +1311,16 @@ struct drm_mode_rect {
+ 	__s32 y2;
+ };
+ 
++/**
++ * struct drm_mode_closefb
++ * @fb_id: Framebuffer ID.
++ * @pad: Must be zero.
++ */
++struct drm_mode_closefb {
++	__u32 fb_id;
++	__u32 pad;
++};
++
+ #if defined(__cplusplus)
+ }
+ #endif
+-- 
+2.42.0
+

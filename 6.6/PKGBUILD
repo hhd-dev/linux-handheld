@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
-pkgver=6.6.30
-pkgrel=3
+pkgver=6.6.32
+pkgrel=1
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -58,10 +58,13 @@ source=(
   0000-amd-seamless.patch
 
   # Atomic flips from 6.8
+  0000-ioctl-separate-closefb.patch
   0000-atomic-introduce.patch
   0001-atomic-allow.patch
-  # Causes stacktraces
-  # 0002-atomic-refuse.patch
+  0002-atomic-refuse.patch
+  0003-atomic-cursor-plane.patch
+  # Already part of 6.6
+  # 0003-atomic-fb-null.patch
 
   # Allow disabling boost on pstate
   # https://www.phoronix.com/news/AMD-Core-Perf-Boost-Linux
@@ -154,7 +157,7 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
 )
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
-sha256sums=('b66a5b863b0f8669448b74ca83bd641a856f164b29956e539bbcb5fdeeab9cc6'
+sha256sums=('aaa824eaf07f61911d22b75ff090a403c3dd0bd73e23933e0bba8b5971436ce1'
             'SKIP'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
@@ -173,9 +176,11 @@ sha256sums=('b66a5b863b0f8669448b74ca83bd641a856f164b29956e539bbcb5fdeeab9cc6'
             'ad70fc7cf73dd58ff8c6c4266e91781b2ec576d2a25c2985da544dfd9b12ee50'
             'b5bc72eb2d93db0417b1de9e0c7b6391e01f5ea69e8964de91c4f1ef71190e43'
             '25a60f32b4949339561431bbceaa9ae7c92b3975b78ab86b93ab2e0e076b6042'
+            '33af30245a8c7fde09545e7055b6a7251bb7a9f18221a18374bdc3dec2afbad4'
             'f495afea4c89d20bf48ef985aeb1c9a4013e57963c854728fd8c369c1d1468b2'
             '3f51da66ee66e6189a637eb266e76e03fe3e2055786d9b836699b80b35132f00'
             '78e68e8599c1dd66ed00361a05f05cab54a4f2feac85fd2ff8989063bb9ec473'
+            'fe92488c881243fe75e98e28b337856593ee78a0a2d411b4c70fe2b81088169c'
             '0e440f246e21a860b753466bf5151e1300152a92aac74d3ddb9a5dfbbf9686af'
             '164fd2d20154c9d2bfc6ef92c768e9b4eaa547b5eb257736a4c9b2e0f5e9bcd1'
             'c590b0f2a9039662087ac4c205f17fc3daa51ac8c4bd0a2c3fdccc1b4d97b2b1'
@@ -199,7 +204,7 @@ sha256sums=('b66a5b863b0f8669448b74ca83bd641a856f164b29956e539bbcb5fdeeab9cc6'
             'e2665414d2e6c4ad57bae59e99e88ceb86cb0c144591e5a22f3b9158995344fa'
             '01ef224844fc06193626ec36bcd8614065258020810ee1b9cee6a8cdd27274b2'
             '5a2aa1c97adef776c4c900f74a2bb096738f7736e590adf73803f3766edec74b'
-            '586c168207af51b65e4a5e54e11f0cfce1e64cc27f4ab937d18f31e0a4024576'
+            'd6ee8546f9437c966a8a741f6c60a02e28780a58c7d77d8f29212379db716f4c'
             '34864acac427928c641a90ffeef74da74a89cf00f6fba4560343e1813805d75e'
             'a74d2ae4c7318e1191c63c8c23e1d552812ac7d0cf11359a2da34ac336a5355e'
             '9912955d6d26c8c3780b6656db131e8561ae93bc925582a6b94cc526b233fa18'
@@ -234,7 +239,11 @@ prepare() {
     src="${src%.zst}"
     [[ $src = *.patch ]] || continue
     echo "----- Applying patch ./$src"
-    patch -Np1 < "../$src"
+    # Allow going to reject path through vs code terminal
+    patch -Np1 < "../$src" | sed -e "s/saving rejects to file /saving rejects to file ${PWD//\//\\/}\//g"
+    if [ ${PIPESTATUS[0]} -ne 0 ]; then
+      exit ${PIPESTATUS[0]}
+    fi
   done
 
   if [ -f "../../../.config" ]; then

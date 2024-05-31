@@ -94,14 +94,6 @@ index 5a35ac413..de2195b72 100644
  int qca_uart_setup(struct hci_dev *hdev, uint8_t baudrate,
  		   enum qca_btsoc_type soc_type, struct qca_btsoc_version ver,
  		   const char *firmware_name)
-@@ -582,6 +648,7 @@ int qca_uart_setup(struct hci_dev *hdev, uint8_t baudrate,
- 	int err;
- 	u8 rom_ver = 0;
- 	u32 soc_ver;
-+	u16 boardid = 0;
-
- 	bt_dev_dbg(hdev, "QCA setup on UART");
-
 @@ -605,6 +672,10 @@ int qca_uart_setup(struct hci_dev *hdev, uint8_t baudrate,
  	/* Download rampatch file */
  	config.type = TLV_TYPE_PATCH;
@@ -146,22 +138,6 @@ index 03bff5c00..ffed9ea8a 100644
  #define EDL_PATCH_CONFIG_CMD		(0x28)
  #define MAX_SIZE_PER_TLV_SEGMENT	(243)
  #define QCA_PRE_SHUTDOWN_CMD		(0xFC08)
-@@ -48,6 +49,7 @@
-
- #define QCA_FW_BUILD_VER_LEN		255
-
-+#define QCA_HSP_GF_SOC_ID		0x1200
-
- enum qca_baudrate {
- 	QCA_BAUDRATE_115200 	= 0,
-@@ -146,6 +148,7 @@ enum qca_btsoc_type {
- 	QCA_WCN3990,
- 	QCA_WCN3998,
- 	QCA_WCN3991,
-+	QCA_QCA2066,
- 	QCA_QCA6390,
- 	QCA_WCN6750,
- 	QCA_WCN6855,
 diff --git a/drivers/bluetooth/hci_qca.c b/drivers/bluetooth/hci_qca.c
 index 4b57e15f9..891c25ffc 100644
 --- a/drivers/bluetooth/hci_qca.c
