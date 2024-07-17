@@ -1,5 +1,5 @@
 pkgbase=linux-handheld
-pkgver=6.6.37
+pkgver=6.6.40
 pkgrel=1
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
@@ -144,6 +144,9 @@ source=(
   # # Also set the PS controller bluetooth polling rate to 1000Hz
   set-ps4-bt-poll-rate-1000hz.patch
 
+  # Allow revoking controllers
+  0001-add-revoke_all-ioctl-to-release-event-and-joy-nodes-.patch
+
   config
   config-handheld
 )
@@ -152,7 +155,7 @@ validpgpkeys=(
   647F28654894E3BD457199BE38DBBDC86092693E  # Greg Kroah-Hartman
 )
 # https://www.kernel.org/pub/linux/kernel/v6.x/sha256sums.asc
-sha256sums=('f3976e77708694fe4a1f8d1307c315c8a36cbc58f038a38e006b91e29a1f3214'
+sha256sums=('5c3a3c03c055b8d601a6d7f80d1465ada6b83a12299f6ace2027b47f0baff538'
             'SKIP'
             'a33a2b55fe3ea04ce86c4ccade0afac9825159a95bdc9cfbd1a464030dba3b33'
             '9df628fd530950e37d31da854cb314d536f33c83935adf5c47e71266a55f7004'
@@ -208,6 +211,7 @@ sha256sums=('f3976e77708694fe4a1f8d1307c315c8a36cbc58f038a38e006b91e29a1f3214'
             '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d'
             '2ce395a990bd260c71f542faa91bf4f4480321f3db4035b49fddc10a73a7a5ae'
             '98a2a5d772b1e9a4eefea4807179fb277c9fca7858af2318e424567a7a9f5910'
+            'ed0b9b23ffd0d13bb3bac29ed2f8e0f45655532c6afe7bf1aa477915e54eb632'
             '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0'
             '78c7033561e47690712692d01cdd3a52359bcad88c5f1df601118b515b1f3075')
 

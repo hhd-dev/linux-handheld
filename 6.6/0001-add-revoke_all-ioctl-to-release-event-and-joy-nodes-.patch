@@ -1,0 +1,208 @@
+From e24eba6f9ffd2338028116ddc1e14ba5b68b997a Mon Sep 17 00:00:00 2001
+From: antheas <antheas@users.noreply.github.com>
+Date: Wed, 17 Jul 2024 17:14:06 +0300
+Subject: [PATCH] add revoke_all ioctl to release event and joy nodes after
+ hiding
+
+---
+ drivers/input/evdev.c         | 24 ++++++++++++++++
+ drivers/input/joydev.c        | 54 ++++++++++++++++++++++++++++++-----
+ include/uapi/linux/input.h    |  1 +
+ include/uapi/linux/joystick.h |  4 +++
+ 4 files changed, 76 insertions(+), 7 deletions(-)
+
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index 51e0c4954600..87226069d076 100644
+--- a/drivers/input/evdev.c
++++ b/drivers/input/evdev.c
+@@ -951,6 +951,21 @@ static int evdev_revoke(struct evdev *evdev, struct evdev_client *client,
+ 	return 0;
+ }
+ 
++static int evdev_revoke_all(struct evdev *evdev, struct file *file)
++{
++	struct evdev_client *client;
++	input_flush_device(&evdev->handle, file);
++
++	spin_lock(&evdev->client_lock);
++	list_for_each_entry(client, &evdev->client_list, node) {
++		client->revoked = true;
++		evdev_ungrab(evdev, client);
++		wake_up_interruptible_poll(&client->wait, EPOLLHUP | EPOLLERR);
++	}
++	spin_unlock(&evdev->client_lock);
++	return 0;
++}
++
+ /* must be called with evdev-mutex held */
+ static int evdev_set_mask(struct evdev_client *client,
+ 			  unsigned int type,
+@@ -1094,6 +1109,15 @@ static long evdev_do_ioctl(struct file *file, unsigned int cmd,
+ 			return -EINVAL;
+ 		else
+ 			return evdev_revoke(evdev, client, file);
++	
++	case EVIOCREVOKEALL:
++		if (!capable(CAP_SYS_ADMIN))
++		    return -EACCES;
++
++		if (p)
++			return -EINVAL;
++		else
++			return evdev_revoke_all(evdev, file);
+ 
+ 	case EVIOCGMASK: {
+ 		void __user *codes_ptr;
+diff --git a/drivers/input/joydev.c b/drivers/input/joydev.c
+index 5824bca02e5a..3bdf3a1971f7 100644
+--- a/drivers/input/joydev.c
++++ b/drivers/input/joydev.c
+@@ -63,8 +63,29 @@ struct joydev_client {
+ 	struct fasync_struct *fasync;
+ 	struct joydev *joydev;
+ 	struct list_head node;
++	bool revoked;
+ };
+ 
++static int joydev_revoke(struct joydev *joydev, struct joydev_client *client)
++{
++	client->revoked = true;
++	wake_up_interruptible(&joydev->wait);
++	return 0;
++}
++
++static int joydev_revoke_all(struct joydev *joydev)
++{
++	struct joydev_client *client;
++
++	spin_lock(&joydev->client_lock);
++	list_for_each_entry(client, &joydev->client_list, node) {
++		client->revoked = true;
++	}
++	spin_unlock(&joydev->client_lock);
++	wake_up_interruptible(&joydev->wait);
++	return 0;
++}
++
+ static int joydev_correct(int value, struct js_corr *corr)
+ {
+ 	switch (corr->type) {
+@@ -89,6 +110,9 @@ static void joydev_pass_event(struct joydev_client *client,
+ 			      struct js_event *event)
+ {
+ 	struct joydev *joydev = client->joydev;
++	
++	if (client->revoked)
++		return;
+ 
+ 	/*
+ 	 * IRQs already disabled, just acquire the lock
+@@ -345,6 +369,9 @@ static ssize_t joydev_0x_read(struct joydev_client *client,
+ 	struct JS_DATA_TYPE data;
+ 	int i;
+ 
++	if (client->revoked)
++		return -ENODEV;
++
+ 	spin_lock_irq(&input->event_lock);
+ 
+ 	/*
+@@ -402,7 +429,7 @@ static ssize_t joydev_read(struct file *file, char __user *buf,
+ 		return -EAGAIN;
+ 
+ 	retval = wait_event_interruptible(joydev->wait,
+-			!joydev->exist || joydev_data_pending(client));
++			!joydev->exist || client->revoked || joydev_data_pending(client));
+ 	if (retval)
+ 		return retval;
+ 
+@@ -438,7 +465,7 @@ static __poll_t joydev_poll(struct file *file, poll_table *wait)
+ 
+ 	poll_wait(file, &joydev->wait, wait);
+ 	return (joydev_data_pending(client) ? (EPOLLIN | EPOLLRDNORM) : 0) |
+-		(joydev->exist ?  0 : (EPOLLHUP | EPOLLERR));
++		(joydev->exist && !client->revoked ?  0 : (EPOLLHUP | EPOLLERR));
+ }
+ 
+ static int joydev_handle_JSIOCSAXMAP(struct joydev *joydev,
+@@ -506,9 +533,8 @@ static int joydev_handle_JSIOCSBTNMAP(struct joydev *joydev,
+ 	return retval;
+ }
+ 
+-
+-static int joydev_ioctl_common(struct joydev *joydev,
+-				unsigned int cmd, void __user *argp)
++static int joydev_ioctl_common(struct joydev *joydev, struct joydev_client *client, 
++					unsigned int cmd, void __user *argp)
+ {
+ 	struct input_dev *dev = joydev->handle.dev;
+ 	size_t len;
+@@ -556,6 +582,20 @@ static int joydev_ioctl_common(struct joydev *joydev,
+ 		return copy_to_user(argp, joydev->corr,
+ 			sizeof(joydev->corr[0]) * joydev->nabs) ? -EFAULT : 0;
+ 
++	case JSIOCREVOKE:
++		if (argp)
++			return -EINVAL;
++		else
++			return joydev_revoke(joydev, client);
++
++	case JSIOCREVOKEALL:
++		if (!capable(CAP_SYS_ADMIN))
++			return -EACCES;
++
++		if (argp)
++			return -EINVAL;
++		else
++			return joydev_revoke_all(joydev);
+ 	}
+ 
+ 	/*
+@@ -649,7 +689,7 @@ static long joydev_compat_ioctl(struct file *file,
+ 		break;
+ 
+ 	default:
+-		retval = joydev_ioctl_common(joydev, cmd, argp);
++		retval = joydev_ioctl_common(joydev, client, cmd, argp);
+ 		break;
+ 	}
+ 
+@@ -699,7 +739,7 @@ static long joydev_ioctl(struct file *file,
+ 		break;
+ 
+ 	default:
+-		retval = joydev_ioctl_common(joydev, cmd, argp);
++		retval = joydev_ioctl_common(joydev, client, cmd, argp);
+ 		break;
+ 	}
+  out:
+diff --git a/include/uapi/linux/input.h b/include/uapi/linux/input.h
+index 2557eb7b0561..38bfac937add 100644
+--- a/include/uapi/linux/input.h
++++ b/include/uapi/linux/input.h
+@@ -185,6 +185,7 @@ struct input_mask {
+ 
+ #define EVIOCGRAB		_IOW('E', 0x90, int)			/* Grab/Release device */
+ #define EVIOCREVOKE		_IOW('E', 0x91, int)			/* Revoke device access */
++#define EVIOCREVOKEALL	_IOW('E', 0x94, int)			/* Revoke device access from all clients. Requires CAP_SYS_ADMIN. */
+ 
+ /**
+  * EVIOCGMASK - Retrieve current event mask
+diff --git a/include/uapi/linux/joystick.h b/include/uapi/linux/joystick.h
+index 192bf2cf182d..543b004802f3 100644
+--- a/include/uapi/linux/joystick.h
++++ b/include/uapi/linux/joystick.h
+@@ -66,6 +66,10 @@ struct js_event {
+ #define JSIOCSBTNMAP		_IOW('j', 0x33, __u16[KEY_MAX - BTN_MISC + 1])	/* set button mapping */
+ #define JSIOCGBTNMAP		_IOR('j', 0x34, __u16[KEY_MAX - BTN_MISC + 1])	/* get button mapping */
+ 
++#define JSIOCREVOKE		_IOW('j', 0x91, int)			/* Revoke device access */
++#define JSIOCREVOKEALL	_IOW('j', 0x94, int)			/* Revoke device access from all clients. Requires CAP_SYS_ADMIN. */
++
++
+ /*
+  * Types and constants for get/set correction
+  */
+-- 
+2.45.2
+
