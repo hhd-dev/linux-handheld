@@ -1,0 +1,28 @@
+From 79d958eccfa4a1cfbb552032e9542f03333005e7 Mon Sep 17 00:00:00 2001
+From: antheas <antheas@users.noreply.github.com>
+Date: Mon, 15 Jul 2024 00:00:45 +0300
+Subject: [PATCH] add ally x dmi quirk for controller suspend
+
+---
+ drivers/platform/x86/asus-wmi.c | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
+index 3f9b6285c9a6..8e362726b703 100644
+--- a/drivers/platform/x86/asus-wmi.c
++++ b/drivers/platform/x86/asus-wmi.c
+@@ -4645,8 +4645,10 @@ static int asus_wmi_add(struct platform_device *pdev)
+ 	asus->nv_temp_tgt_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_NV_THERM_TARGET);
+ 	asus->panel_overdrive_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_PANEL_OD);
+ 	asus->mini_led_mode_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_MINI_LED_MODE);
+-	asus->ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
+-						&& dmi_match(DMI_BOARD_NAME, "RC71L");
++	asus->ally_mcu_usb_switch =
++		acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE) &&
++		(dmi_match(DMI_BOARD_NAME, "RC71L") ||
++		 dmi_match(DMI_BOARD_NAME, "RC72LA"));
+ 
+ 	err = fan_boost_mode_check_present(asus);
+ 	if (err)
+-- 
+2.45.2
