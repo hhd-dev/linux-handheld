@@ -1,0 +1,67 @@
+From a635efc839cd367dec56fa026b87e6acbf4a161e Mon Sep 17 00:00:00 2001
+From: antheas <git@antheas.dev>
+Date: Fri, 19 Jul 2024 01:21:29 +0300
+Subject: [PATCH v2 1/2] add revokeall ioctl to evdev nodes
+
+---
+ drivers/input/evdev.c      | 24 ++++++++++++++++++++++++
+ include/uapi/linux/input.h |  1 +
+ 2 files changed, 25 insertions(+)
+
+diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
+index 51e0c4954..87226069d 100644
+--- a/drivers/input/evdev.c
++++ b/drivers/input/evdev.c
+@@ -951,6 +951,21 @@ static int evdev_revoke(struct evdev *evdev, struct evdev_client *client,
+ 	return 0;
+ }
+ 
++static int evdev_revoke_all(struct evdev *evdev, struct file *file)
++{
++	struct evdev_client *client;
++	input_flush_device(&evdev->handle, file);
++
++	spin_lock(&evdev->client_lock);
++	list_for_each_entry(client, &evdev->client_list, node) {
++		client->revoked = true;
++		evdev_ungrab(evdev, client);
++		wake_up_interruptible_poll(&client->wait, EPOLLHUP | EPOLLERR);
++	}
++	spin_unlock(&evdev->client_lock);
++	return 0;
++}
++
+ /* must be called with evdev-mutex held */
+ static int evdev_set_mask(struct evdev_client *client,
+ 			  unsigned int type,
+@@ -1094,6 +1109,15 @@ static long evdev_do_ioctl(struct file *file, unsigned int cmd,
+ 			return -EINVAL;
+ 		else
+ 			return evdev_revoke(evdev, client, file);
++	
++	case EVIOCREVOKEALL:
++		if (!capable(CAP_SYS_ADMIN))
++		    return -EACCES;
++
++		if (p)
++			return -EINVAL;
++		else
++			return evdev_revoke_all(evdev, file);
+ 
+ 	case EVIOCGMASK: {
+ 		void __user *codes_ptr;
+diff --git a/include/uapi/linux/input.h b/include/uapi/linux/input.h
+index 2557eb7b0..38bfac937 100644
+--- a/include/uapi/linux/input.h
++++ b/include/uapi/linux/input.h
+@@ -185,6 +185,7 @@ struct input_mask {
+ 
+ #define EVIOCGRAB		_IOW('E', 0x90, int)			/* Grab/Release device */
+ #define EVIOCREVOKE		_IOW('E', 0x91, int)			/* Revoke device access */
++#define EVIOCREVOKEALL	_IOW('E', 0x94, int)			/* Revoke device access from all clients. Requires CAP_SYS_ADMIN. */
+ 
+ /**
+  * EVIOCGMASK - Retrieve current event mask
+-- 
+2.45.2
+

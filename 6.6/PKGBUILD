@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.40
-pkgrel=1
+pkgrel=2
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -98,6 +98,9 @@ source=(
   0004-iio-imu-Load_ROG_ALLY_mount_matrix.patch
   0005-iio-imu-ASUS-ROG-ALLY-force-INT1-IRQ.patch
   ROG-ALLY-NCT6775-PLATFORM.patch
+  # Ally X
+  0001-allyx-fix-audio.patch
+  0001-add-ally-x-dmi-quirk-for-controller-suspend.patch
 
   # IMU for bmi160 devices with realtek id
   bmi160_ayaneo.patch
@@ -145,7 +148,8 @@ source=(
   set-ps4-bt-poll-rate-1000hz.patch
 
   # Allow revoking controllers
-  0001-add-revoke_all-ioctl-to-release-event-and-joy-nodes-.patch
+  v2-0001-add-revokeall-ioctl-to-evdev-nodes.patch
+  v2-0002-add-revokeall-ioctl-to-joydevs.patch
 
   config
   config-handheld
@@ -195,6 +199,8 @@ sha256sums=('5c3a3c03c055b8d601a6d7f80d1465ada6b83a12299f6ace2027b47f0baff538'
             '5d7104b381925e85f4cdf8ab2017be23b151a3d94ac4321b3aa4cb8d3f611b6c'
             'e1ace3ca52faf0f6a60342bddfa8e22bd37a6bacaa8ad58beda653a049cfc3de'
             'cfcd5c177423df8b7b98b0500fe7ab0757f895ed945c33e205963f0069c7a3be'
+            '735cee9e8c41718e0265d5f55a7a1b4de92d5792757e05c8672a5f9015f4beaf'
+            'e78e0098199fa999e9df3e3fd7402669668006550fcce049ddbd4ca7faa1858f'
             'e2665414d2e6c4ad57bae59e99e88ceb86cb0c144591e5a22f3b9158995344fa'
             '01ef224844fc06193626ec36bcd8614065258020810ee1b9cee6a8cdd27274b2'
             '5a2aa1c97adef776c4c900f74a2bb096738f7736e590adf73803f3766edec74b'
@@ -211,7 +217,8 @@ sha256sums=('5c3a3c03c055b8d601a6d7f80d1465ada6b83a12299f6ace2027b47f0baff538'
             '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d'
             '2ce395a990bd260c71f542faa91bf4f4480321f3db4035b49fddc10a73a7a5ae'
             '98a2a5d772b1e9a4eefea4807179fb277c9fca7858af2318e424567a7a9f5910'
-            'ed0b9b23ffd0d13bb3bac29ed2f8e0f45655532c6afe7bf1aa477915e54eb632'
+            '2bd07019cb15eb9f408eb1fec51517bc10275d069c02745b1d9aad37eecf3c50'
+            'fac9393d3ade357dfb7e4e3f2febcf9d60eab7f23a1a99d5d44d2c4ddb33db40'
             '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0'
             '78c7033561e47690712692d01cdd3a52359bcad88c5f1df601118b515b1f3075')
 
