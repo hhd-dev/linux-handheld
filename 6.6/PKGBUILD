@@ -1,6 +1,6 @@
 pkgbase=linux-handheld
 pkgver=6.6.40
-pkgrel=2
+pkgrel=3
 pkgdesc='Linux Kernel optimized for Handheld Devices.'
 url='https://www.kernel.org'
 arch=(x86_64)
@@ -148,8 +148,8 @@ source=(
   set-ps4-bt-poll-rate-1000hz.patch
 
   # Allow revoking controllers
-  v2-0001-add-revokeall-ioctl-to-evdev-nodes.patch
-  v2-0002-add-revokeall-ioctl-to-joydevs.patch
+  v3-0001-add-revokeall-ioctl-to-evdev-nodes.patch
+  v3-0002-add-revokeall-ioctl-to-joydev-nodes.patch
 
   config
   config-handheld
@@ -217,8 +217,8 @@ sha256sums=('5c3a3c03c055b8d601a6d7f80d1465ada6b83a12299f6ace2027b47f0baff538'
             '38db1ffbacc2315df6ec862404e0dfe73360f950c75336a960b9da382b2a8e7d'
             '2ce395a990bd260c71f542faa91bf4f4480321f3db4035b49fddc10a73a7a5ae'
             '98a2a5d772b1e9a4eefea4807179fb277c9fca7858af2318e424567a7a9f5910'
-            '2bd07019cb15eb9f408eb1fec51517bc10275d069c02745b1d9aad37eecf3c50'
-            'fac9393d3ade357dfb7e4e3f2febcf9d60eab7f23a1a99d5d44d2c4ddb33db40'
+            'feadf1777267b5902721d4a867ebf5adb9e61f5e6182c0a4f6ee7bf2fa771555'
+            '6f560812f7e27df1068d49a6c3f38cf8d2c47e41f9225693d3a1ca442f21e055'
             '6d02772dfbc7805812be3082f0c0052fbbc0f317d71cc3f34692440641a2b9f0'
             '78c7033561e47690712692d01cdd3a52359bcad88c5f1df601118b515b1f3075')
 

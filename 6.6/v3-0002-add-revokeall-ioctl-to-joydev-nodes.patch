@@ -1,18 +1,18 @@
-From c6bb9aa6bbca07262c07b3501a9409f67a7dd7f8 Mon Sep 17 00:00:00 2001
+From 54974826a405724f049e37be78cd365d75c2a2a2 Mon Sep 17 00:00:00 2001
 From: antheas <git@antheas.dev>
-Date: Fri, 19 Jul 2024 01:21:44 +0300
-Subject: [PATCH v2 2/2] add revokeall ioctl to joydevs
+Date: Fri, 19 Jul 2024 12:25:53 +0300
+Subject: [PATCH v3 2/2] add revokeall ioctl to joydev nodes
 
 ---
- drivers/input/joydev.c        | 58 +++++++++++++++++++++++++++++------
+ drivers/input/joydev.c        | 57 +++++++++++++++++++++++++++++------
  include/uapi/linux/joystick.h |  4 +++
- 2 files changed, 52 insertions(+), 10 deletions(-)
+ 2 files changed, 51 insertions(+), 10 deletions(-)
 
 diff --git a/drivers/input/joydev.c b/drivers/input/joydev.c
-index 5824bca02..e2447ec11 100644
+index 5824bca02..a44229af6 100644
 --- a/drivers/input/joydev.c
 +++ b/drivers/input/joydev.c
-@@ -63,8 +63,29 @@ struct joydev_client {
+@@ -63,8 +63,31 @@ struct joydev_client {
  	struct fasync_struct *fasync;
  	struct joydev *joydev;
  	struct list_head node;
@@ -33,8 +33,10 @@ index 5824bca02..e2447ec11 100644
 +	spin_lock(&joydev->client_lock);
 +	list_for_each_entry(client, &joydev->client_list, node) {
 +		client->revoked = true;
++		kill_fasync(&client->fasync, SIGIO, POLL_HUP);
 +	}
 +	spin_unlock(&joydev->client_lock);
++	
 +	wake_up_interruptible(&joydev->wait);
 +	return 0;
 +}
@@ -42,17 +44,7 @@ index 5824bca02..e2447ec11 100644
  static int joydev_correct(int value, struct js_corr *corr)
  {
  	switch (corr->type) {
-@@ -89,6 +110,9 @@ static void joydev_pass_event(struct joydev_client *client,
- 			      struct js_event *event)
- {
- 	struct joydev *joydev = client->joydev;
-+	
-+	if (client->revoked)
-+		return;
- 
- 	/*
- 	 * IRQs already disabled, just acquire the lock
-@@ -389,7 +413,7 @@ static ssize_t joydev_read(struct file *file, char __user *buf,
+@@ -389,7 +412,7 @@ static ssize_t joydev_read(struct file *file, char __user *buf,
  	struct js_event event;
  	int retval;
  
@@ -61,7 +53,7 @@ index 5824bca02..e2447ec11 100644
  		return -ENODEV;
  
  	if (count < sizeof(struct js_event))
-@@ -402,11 +426,11 @@ static ssize_t joydev_read(struct file *file, char __user *buf,
+@@ -402,11 +425,11 @@ static ssize_t joydev_read(struct file *file, char __user *buf,
  		return -EAGAIN;
  
  	retval = wait_event_interruptible(joydev->wait,
@@ -75,7 +67,7 @@ index 5824bca02..e2447ec11 100644
  		return -ENODEV;
  
  	while (retval + sizeof(struct js_event) <= count &&
-@@ -438,7 +462,7 @@ static __poll_t joydev_poll(struct file *file, poll_table *wait)
+@@ -438,7 +461,7 @@ static __poll_t joydev_poll(struct file *file, poll_table *wait)
  
  	poll_wait(file, &joydev->wait, wait);
  	return (joydev_data_pending(client) ? (EPOLLIN | EPOLLRDNORM) : 0) |
@@ -84,7 +76,7 @@ index 5824bca02..e2447ec11 100644
  }
  
  static int joydev_handle_JSIOCSAXMAP(struct joydev *joydev,
-@@ -507,8 +531,8 @@ static int joydev_handle_JSIOCSBTNMAP(struct joydev *joydev,
+@@ -507,8 +530,8 @@ static int joydev_handle_JSIOCSBTNMAP(struct joydev *joydev,
  }
  
  
@@ -95,7 +87,7 @@ index 5824bca02..e2447ec11 100644
  {
  	struct input_dev *dev = joydev->handle.dev;
  	size_t len;
-@@ -556,6 +580,20 @@ static int joydev_ioctl_common(struct joydev *joydev,
+@@ -556,6 +579,20 @@ static int joydev_ioctl_common(struct joydev *joydev,
  		return copy_to_user(argp, joydev->corr,
  			sizeof(joydev->corr[0]) * joydev->nabs) ? -EFAULT : 0;
  
@@ -116,7 +108,7 @@ index 5824bca02..e2447ec11 100644
  	}
  
  	/*
-@@ -606,7 +644,7 @@ static long joydev_compat_ioctl(struct file *file,
+@@ -606,7 +643,7 @@ static long joydev_compat_ioctl(struct file *file,
  	if (retval)
  		return retval;
  
@@ -125,7 +117,7 @@ index 5824bca02..e2447ec11 100644
  		retval = -ENODEV;
  		goto out;
  	}
-@@ -649,7 +687,7 @@ static long joydev_compat_ioctl(struct file *file,
+@@ -649,7 +686,7 @@ static long joydev_compat_ioctl(struct file *file,
  		break;
  
  	default:
@@ -134,7 +126,7 @@ index 5824bca02..e2447ec11 100644
  		break;
  	}
  
-@@ -671,7 +709,7 @@ static long joydev_ioctl(struct file *file,
+@@ -671,7 +708,7 @@ static long joydev_ioctl(struct file *file,
  	if (retval)
  		return retval;
  
@@ -143,7 +135,7 @@ index 5824bca02..e2447ec11 100644
  		retval = -ENODEV;
  		goto out;
  	}
-@@ -699,7 +737,7 @@ static long joydev_ioctl(struct file *file,
+@@ -699,7 +736,7 @@ static long joydev_ioctl(struct file *file,
  		break;
  
  	default:

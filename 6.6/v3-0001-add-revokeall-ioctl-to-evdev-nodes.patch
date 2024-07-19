@@ -1,18 +1,18 @@
-From a635efc839cd367dec56fa026b87e6acbf4a161e Mon Sep 17 00:00:00 2001
+From 126b25c3d168e53446259cac55c97babc8ecda51 Mon Sep 17 00:00:00 2001
 From: antheas <git@antheas.dev>
-Date: Fri, 19 Jul 2024 01:21:29 +0300
-Subject: [PATCH v2 1/2] add revokeall ioctl to evdev nodes
+Date: Fri, 19 Jul 2024 12:25:42 +0300
+Subject: [PATCH v3 1/2] add revokeall ioctl to evdev nodes
 
 ---
- drivers/input/evdev.c      | 24 ++++++++++++++++++++++++
+ drivers/input/evdev.c      | 33 +++++++++++++++++++++++++++++++++
  include/uapi/linux/input.h |  1 +
- 2 files changed, 25 insertions(+)
+ 2 files changed, 34 insertions(+)
 
 diff --git a/drivers/input/evdev.c b/drivers/input/evdev.c
-index 51e0c4954..87226069d 100644
+index 51e0c4954..15b5374d1 100644
 --- a/drivers/input/evdev.c
 +++ b/drivers/input/evdev.c
-@@ -951,6 +951,21 @@ static int evdev_revoke(struct evdev *evdev, struct evdev_client *client,
+@@ -951,6 +951,30 @@ static int evdev_revoke(struct evdev *evdev, struct evdev_client *client,
  	return 0;
  }
  
@@ -21,10 +21,19 @@ index 51e0c4954..87226069d 100644
 +	struct evdev_client *client;
 +	input_flush_device(&evdev->handle, file);
 +
++	struct evdev_client *grab = rcu_dereference_protected(
++		evdev->grab, lockdep_is_held(&evdev->mutex));
++
++	if (grab) {
++		rcu_assign_pointer(evdev->grab, NULL);
++		synchronize_rcu();
++		input_release_device(&evdev->handle);
++	}
++
 +	spin_lock(&evdev->client_lock);
 +	list_for_each_entry(client, &evdev->client_list, node) {
 +		client->revoked = true;
-+		evdev_ungrab(evdev, client);
++		kill_fasync(&client->fasync, SIGIO, POLL_HUP);
 +		wake_up_interruptible_poll(&client->wait, EPOLLHUP | EPOLLERR);
 +	}
 +	spin_unlock(&evdev->client_lock);
@@ -34,7 +43,7 @@ index 51e0c4954..87226069d 100644
  /* must be called with evdev-mutex held */
  static int evdev_set_mask(struct evdev_client *client,
  			  unsigned int type,
-@@ -1094,6 +1109,15 @@ static long evdev_do_ioctl(struct file *file, unsigned int cmd,
+@@ -1094,6 +1118,15 @@ static long evdev_do_ioctl(struct file *file, unsigned int cmd,
  			return -EINVAL;
  		else
  			return evdev_revoke(evdev, client, file);
