@@ -1,0 +1,241 @@
+From 3f404f41003f7a7e6f66b37b652f90361801e63c Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <git@antheas.dev>
+Date: Fri, 13 Sep 2024 22:38:16 +0200
+Subject: [PATCH v1 1/2] remove ally powersave quirk
+
+---
+ drivers/platform/x86/asus-wmi.c | 54 ---------------------------------
+ 1 file changed, 54 deletions(-)
+
+diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
+index 37636e5a38e3..2c9656e0afda 100644
+--- a/drivers/platform/x86/asus-wmi.c
++++ b/drivers/platform/x86/asus-wmi.c
+@@ -137,29 +137,10 @@ module_param(fnlock_default, bool, 0444);
+ #define ASUS_MINI_LED_2024_STRONG	0x01
+ #define ASUS_MINI_LED_2024_OFF		0x02
+ 
+-/* Controls the power state of the USB0 hub on ROG Ally which input is on */
+-#define ASUS_USB0_PWR_EC0_CSEE "\\_SB.PCI0.SBRG.EC0.CSEE"
+-/* 300ms so far seems to produce a reliable result on AC and battery */
+-#define ASUS_USB0_PWR_EC0_CSEE_WAIT 1500
+-
+ static const char * const ashs_ids[] = { "ATK4001", "ATK4002", NULL };
+ 
+ static int throttle_thermal_policy_write(struct asus_wmi *);
+ 
+-static const struct dmi_system_id asus_ally_mcu_quirk[] = {
+-	{
+-		.matches = {
+-			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
+-		},
+-	},
+-	{
+-		.matches = {
+-			DMI_MATCH(DMI_BOARD_NAME, "RC72L"),
+-		},
+-	},
+-	{ },
+-};
+-
+ static bool ashs_present(void)
+ {
+ 	int i = 0;
+@@ -269,9 +250,6 @@ struct asus_wmi {
+ 	u32 tablet_switch_dev_id;
+ 	bool tablet_switch_inverted;
+ 
+-	/* The ROG Ally device requires the MCU USB device be disconnected before suspend */
+-	bool ally_mcu_usb_switch;
+-
+ 	enum fan_type fan_type;
+ 	enum fan_type gpu_fan_type;
+ 	enum fan_type mid_fan_type;
+@@ -4698,8 +4676,6 @@ static int asus_wmi_add(struct platform_device *pdev)
+ 	asus->egpu_enable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_EGPU);
+ 	asus->dgpu_disable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_DGPU);
+ 	asus->kbd_rgb_state_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_TUF_RGB_STATE);
+-	asus->ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
+-						&& dmi_check_system(asus_ally_mcu_quirk);
+ 
+ 	if (asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_MINI_LED_MODE))
+ 		asus->mini_led_dev_id = ASUS_WMI_DEVID_MINI_LED_MODE;
+@@ -4892,34 +4868,6 @@ static int asus_hotk_resume(struct device *device)
+ 	return 0;
+ }
+ 
+-static int asus_hotk_resume_early(struct device *device)
+-{
+-	struct asus_wmi *asus = dev_get_drvdata(device);
+-
+-	if (asus->ally_mcu_usb_switch) {
+-		/* sleep required to prevent USB0 being yanked then reappearing rapidly */
+-		if (ACPI_FAILURE(acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB8)))
+-			dev_err(device, "ROG Ally MCU failed to connect USB dev\n");
+-		else
+-			msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
+-	}
+-	return 0;
+-}
+-
+-static int asus_hotk_prepare(struct device *device)
+-{
+-	struct asus_wmi *asus = dev_get_drvdata(device);
+-
+-	if (asus->ally_mcu_usb_switch) {
+-		/* sleep required to ensure USB0 is disabled before sleep continues */
+-		if (ACPI_FAILURE(acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB7)))
+-			dev_err(device, "ROG Ally MCU failed to disconnect USB dev\n");
+-		else
+-			msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
+-	}
+-	return 0;
+-}
+-
+ static int asus_hotk_restore(struct device *device)
+ {
+ 	struct asus_wmi *asus = dev_get_drvdata(device);
+@@ -4964,8 +4912,6 @@ static const struct dev_pm_ops asus_pm_ops = {
+ 	.thaw = asus_hotk_thaw,
+ 	.restore = asus_hotk_restore,
+ 	.resume = asus_hotk_resume,
+-	.resume_early = asus_hotk_resume_early,
+-	.prepare = asus_hotk_prepare,
+ };
+ 
+ /* Registration ***************************************************************/
+-- 
+2.46.1
+
+
+From 51657b83c18eb2bb7c4d4fab4cfcd9a800ec5b66 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <git@antheas.dev>
+Date: Tue, 17 Sep 2024 01:00:06 +0200
+Subject: [PATCH v1 2/2] acpi/x86: s2idle: move display _dsm call to early init
+
+Doing the Display on/off calls it in _late functions happens after the EC interrupts are blocked.
+
+This contradicts Microsoft's documentation (Display On/Off should be called outside the suspend sequence).
+
+In turn, this causes the MCU of the ROG Ally devices to fail its _Qxx functions and get confused.
+
+When Extreme powersave is off (saves power during sleep), the MCU is more lenient and this can be mitigated by recalling the _DSM functions twice, through e.g., asus-wmi (which is not proper). However, when it is on, we are not granted this leniency and the MCU will randomly break.
+
+With this patch, after blacklisting asus-wmi or removing the suspend workarounds, the Ally devices work correctly when powersave is both enabled and disabled.
+---
+ drivers/acpi/sleep.h      |  2 ++
+ drivers/acpi/x86/s2idle.c | 47 ++++++++++++++++++++++++++++++---------
+ 2 files changed, 39 insertions(+), 10 deletions(-)
+
+diff --git a/drivers/acpi/sleep.h b/drivers/acpi/sleep.h
+index d960a238be4e..832918da1b24 100644
+--- a/drivers/acpi/sleep.h
++++ b/drivers/acpi/sleep.h
+@@ -16,6 +16,7 @@ static inline acpi_status acpi_set_waking_vector(u32 wakeup_address)
+ }
+ 
+ extern int acpi_s2idle_begin(void);
++extern int acpi_s2idle_begin_wrap(void);
+ extern int acpi_s2idle_prepare(void);
+ extern int acpi_s2idle_prepare_late(void);
+ extern void acpi_s2idle_check(void);
+@@ -23,6 +24,7 @@ extern bool acpi_s2idle_wake(void);
+ extern void acpi_s2idle_restore_early(void);
+ extern void acpi_s2idle_restore(void);
+ extern void acpi_s2idle_end(void);
++extern void acpi_s2idle_end_wrap(void);
+ 
+ extern void acpi_s2idle_setup(void);
+ 
+diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
+index dd0b40b9bbe8..5efc37ec390d 100644
+--- a/drivers/acpi/x86/s2idle.c
++++ b/drivers/acpi/x86/s2idle.c
+@@ -539,6 +539,27 @@ static struct acpi_scan_handler lps0_handler = {
+ 	.attach = lps0_device_attach,
+ };
+ 
++int acpi_s2idle_begin_wrap(void)
++{
++	int err = acpi_s2idle_begin();
++	if (err)
++		return err;
++
++	/* 
++	 * Screen off
++	 * According to the microsoft documentation, the screen off function
++	 * should be called before the suspend sequence begins.
++	 */
++	if (lps0_device_handle && !sleep_no_lps0 && lps0_dsm_func_mask > 0) {
++		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
++					ACPI_LPS0_SCREEN_OFF_AMD :
++					ACPI_LPS0_SCREEN_OFF,
++					lps0_dsm_func_mask, lps0_dsm_guid);
++	}
++
++	return 0;
++}
++
+ int acpi_s2idle_prepare_late(void)
+ {
+ 	struct acpi_s2idle_dev_ops *handler;
+@@ -549,13 +570,6 @@ int acpi_s2idle_prepare_late(void)
+ 	if (pm_debug_messages_on)
+ 		lpi_check_constraints();
+ 
+-	/* Screen off */
+-	if (lps0_dsm_func_mask > 0)
+-		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
+-					ACPI_LPS0_SCREEN_OFF_AMD :
+-					ACPI_LPS0_SCREEN_OFF,
+-					lps0_dsm_func_mask, lps0_dsm_guid);
+-
+ 	if (lps0_dsm_func_mask_microsoft > 0)
+ 		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
+ 				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
+@@ -623,8 +637,19 @@ void acpi_s2idle_restore_early(void)
+ 		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_EXIT,
+ 				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
+ 	}
++}
+ 
+-	/* Screen on */
++void acpi_s2idle_end_wrap(void) {
++	if (!lps0_device_handle || sleep_no_lps0) {
++		acpi_s2idle_end();
++		return;
++	}
++
++	/* 
++	 * Screen on
++	 * According to the microsoft documentation, the screen on function
++	 * should be called after the suspend sequence ends.
++	 */
+ 	if (lps0_dsm_func_mask_microsoft > 0)
+ 		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON,
+ 				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
+@@ -633,17 +658,19 @@ void acpi_s2idle_restore_early(void)
+ 					ACPI_LPS0_SCREEN_ON_AMD :
+ 					ACPI_LPS0_SCREEN_ON,
+ 					lps0_dsm_func_mask, lps0_dsm_guid);
++
++	acpi_s2idle_end();
+ }
+ 
+ static const struct platform_s2idle_ops acpi_s2idle_ops_lps0 = {
+-	.begin = acpi_s2idle_begin,
++	.begin = acpi_s2idle_begin_wrap,
+ 	.prepare = acpi_s2idle_prepare,
+ 	.prepare_late = acpi_s2idle_prepare_late,
+ 	.check = acpi_s2idle_check,
+ 	.wake = acpi_s2idle_wake,
+ 	.restore_early = acpi_s2idle_restore_early,
+ 	.restore = acpi_s2idle_restore,
+-	.end = acpi_s2idle_end,
++	.end = acpi_s2idle_end_wrap,
+ };
+ 
+ void __init acpi_s2idle_setup(void)
+-- 
+2.46.1
+
