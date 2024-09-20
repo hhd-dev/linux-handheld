@@ -1,0 +1,544 @@
+From 3153735388746f8033a08f1388f3ee31de8975a3 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <lkml@antheas.dev>
+Date: Fri, 20 Sep 2024 08:32:52 +0200
+Subject: [PATCH v2 0/4] acpi/x86: s2idle: move Display off/on calls outside
+ suspend (fixes ROG Ally suspend)
+
+The following series moves the Display off/on calls outside of the suspend sequence,
+as they are performed in Windows. This fixes certain issues that appear
+in devices that use the calls and expect the kernel to be active during their
+call (especially in the case of the ROG Ally devices) and opens the possibility
+of implementing a "Screen Off" state in the future (which mirrors Windows).
+
+This series requires a bit of background on how modern standby works in Windows.
+Fundamentally, it is composed of two stages: "Screen Off" and "Sleep".
+Each stage consists of a series of steps, with the former focusing on software
+and the latter focusing on the kernel.
+
+The "Screen Off" stage is a software only stage, where the kernel and drivers
+are fully active. In this stage, software is supposed to minimize non-essential
+activity and to slowly coalesce into a state of non-activity over a period of
+minutes. This can last from 1 second to hours, depending on device state (e.g.,
+if it is plugged in). During research of this patch on Windows, most times it
+fluxuates between 5 seconds to 10 minutes. To aid in battery life and in how
+fast the system suspends, Microsoft provides the _DSM firmware notifications
+"Display On" and "Display Off" that can be used to deactivate unnecessary
+hardware (e.g., RGB).
+
+The "Sleep" stage mirrors the traditional suspend sequence, in which kernel
+components are succesively suspended to reach a low power state.
+
+Currently, the kernel calls the Display On/Off calls during a late part of the
+suspend sequence, where most drivers have already suspended. Since these calls
+are not often used (and if they are, they are mostly used for lid switches),
+this has not caused issues up to now (although a little birdie tells me those
+lid sensors might not be behaving correctly currently).
+
+That was until the release of ROG Ally, where Asus placed a callback that turns
+the controller on and off in those _DSM calls. The Display Off call disconnects
+(if powersave is off) or powers off (if powersave is on and on DC power) the MCU
+responsible for the controller and deactivates the RGB of the device. Display On
+powers on or reconnects the controller respectively.
+This controller, in the Ally X, is composed of 6 HID devices that register to
+the kernel. As can be inferred, the handling of the calls during the suspend
+sequence leads to a set of undesirable outcomes, such as the controller
+soft-locking or only half of the HID devices coming back after resume.
+
+After moving the calls outside of the suspend sequence, my ROG Ally X test unit
+can suspend more than 50 times without rebooting, both with powersave on or off,
+regardless of whether it is plugged/unplugged during suspend, and still have the
+controller work with full reliability.
+
+In addition, moving the calls outside of the suspend sequence (and the validation
+work it implies) opens the possibility of implementing a "Screen Off" state in
+the future. This state would make a great addition to something like logind or
+systemd, if it is exposed over a sysfs endpoint. The recommendation here would
+be to allow userspace to instruct the kernel to enter "Screen Off" state when
+the device becomes inactive. The kernel would then call "Display Off" and
+delegade the responsibility of exiting "Screen Off" (and calling Display On)
+to userspace, regardless of the number of the suspensions afterwards.
+If userspace does not make the kernel enter "Screen Off" prior to suspend, the
+kernel would call Display Off and On before suspending, in the same way it is
+done with this patch.
+
+This series is worth backing this up with sources, so as part of it I reference
+Microsoft's documentation on Modern standby [1-3] that explains the difference
+between "Screen Off" and "Sleep" and how to prepare for them and attach a
+repository of more than 15 device DSDT tables [4] from different manufacturers.
+This repository also contains instructions on how to decode the DSDT tables on
+a test laptop, to figure out what the _DSM calls will do on that device (in most
+cases it is a NOOP or a lid sensor).
+
+Moreover, I conduct a short behavioral test in Windows with the Ally X to showcase
+the documentation empirically. The Ally is great for such a test, as it contains
+visual indicators for all Microsoft suspend points: "Display Off/On" calls are
+indicated with the Controller RGB turning off/on, "Screen Off" is indicated with
+the suspend light and fan being on, and suspend is indicated with the suspend
+light blinking.
+
+Referencing Microsoft's documentation, "Screen Off" is entered either through
+inactivity or by pressing the power button, so I conduct two tests: one by pressing
+the powerbutton, and one for entering Screen Off due to inactivity.
+
+1) Powerbutton test:
+When pressing the powerbutton, the screen of the Ally turns off, and the RGB of
+the controller faints to off within 1s. Following, depending on whether the
+system is plugged in, the power light and fan stay on for 5 seconds to 10 minutes.
+After this point, the power light begins to blink and the fan turns off, showing
+that the system has entered the "Sleep" state.
+
+2) Inactivity test:
+I set the Windows power settings to turn off the screen after 1 minute and wait.
+After one minute, the display turns off, and after 5 seconds, the controller RGB
+turns off. This indicates to me that "Screen Off" is not defined by the screen
+being off, but is rather characterized by it. During those 5 seconds while the
+RGB is on, I can use the controller to wake up the device. Afterwards it cannot.
+
+Those tests validate Microsoft's documentation and show that "Screen Off"
+seems to more closely correlate to lockscreen behavior (button locks instantly,
+inactivity after 5 seconds) than the screen being off and as such it is
+not something that would be a great fit for tying into the DRM subsystem.
+If controlled by userspace and part of the screen turning off, it would also
+solve several behavioral issues that currently exist. For example, as I look
+at my Ally X dev right now, with its screen off, I notice the RGB is still on,
+which is kind of bothersome, now that I know what the expected behavior is in
+Windows.
+
+This patch series is co-developed with help from Mario Limonciello, and, to be
+bisection friendly, is structured based on a patch series he made connecting the
+callbacks to the drm subsystem suspend [5]. It also references (already)
+upstream work by Luke Jones on Asus-wmi for the Ally controller quirk that is
+removed on patch (4) and an issue on amd-drm in 2023 in preparation for the
+work in that quirk [6].
+
+Link: https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/prepare-hardware-for-modern-standby [1]
+Link: https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/prepare-software-for-modern-standby [2]
+Link: https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/modern-standby-firmware-notifications [3]
+Link: https://github.com/hhd-dev/hwinfo/tree/master/devices [4]
+Link: https://git.kernel.org/pub/scm/linux/kernel/git/superm1/linux.git/log/?h=superm1/dsm-screen-on-off [5]
+Link: https://gitlab.freedesktop.org/drm/amd/-/issues/2719 [6]
+
+Changes in v2:
+ - Added attribution to Mario Limonciello and changed the text to reflect that
+ - Made the screen on/off callbacks warn and bail with -EINVAL if they are
+   called in the wrong order (currently impossible)
+    - Changed patch 2 to not bail the suspend sequence when receiving an error
+      (as these calls are not part of the suspend sequence and failing the
+      suspend sequence would cause a user visible fault)
+
+Antheas Kapenekakis (4):
+  acpi/x86: s2idle: add support for screen off and screen on callbacks
+  acpi/x86: s2idle: handle screen off/on calls outside of suspend
+    sequence
+  acpi/x86: s2idle: call screen on and off as part of callbacks
+  platform/x86: asus-wmi: remove Ally (1st gen) and Ally X suspend quirk
+
+ drivers/acpi/x86/s2idle.c       | 65 +++++++++++++++++++++++++--------
+ drivers/platform/x86/asus-wmi.c | 54 ---------------------------
+ include/linux/suspend.h         |  5 +++
+ kernel/power/suspend.c          | 28 ++++++++++++++
+ 4 files changed, 83 insertions(+), 69 deletions(-)
+
+-- 
+2.46.1
+
+From f9867c795cd94123c7a401a3adf50e0a74081fd6 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <lkml@antheas.dev>
+Date: Wed, 18 Sep 2024 23:53:53 +0200
+Subject: [PATCH v2 1/4] acpi/x86: s2idle: add support for screen off and
+ screen on callbacks
+
+The screen off and screen on firmware functions are meant to signify
+the system entering a state where the user is not actively interacting
+with it (i.e., in Windows this state is called "Screen Off" and the
+system enters it once it turns the screen off e.g., due to inactivity).
+
+In this state, the kernel and userspace are fully active, and the user
+might still be interacting with the system somehow (such as with
+listening to music or having a hotspot). Userspace is supposed to
+minimize non-essential activities, but this is not required.
+In addition, there is no requirement of suspending post the screen off
+call. If the user interacts with the system, the kernel should call
+screen on and resume normal operation.
+
+This patch adds a set of callbacks to allow calling the Display On/Off
+firmware calls outside of the suspend/resume path.
+
+Co-developed-by: Mario Limonciello <mario.limonciello@amd.com>
+Signed-off-by: Antheas Kapenekakis <lkml@antheas.dev>
+---
+ include/linux/suspend.h |  5 +++++
+ kernel/power/suspend.c  | 12 ++++++++++++
+ 2 files changed, 17 insertions(+)
+
+diff --git a/include/linux/suspend.h b/include/linux/suspend.h
+index da6ebca3ff77..96ceaad07839 100644
+--- a/include/linux/suspend.h
++++ b/include/linux/suspend.h
+@@ -132,6 +132,7 @@ struct platform_suspend_ops {
+ };
+ 
+ struct platform_s2idle_ops {
++	int (*screen_off)(void);
+ 	int (*begin)(void);
+ 	int (*prepare)(void);
+ 	int (*prepare_late)(void);
+@@ -140,6 +141,7 @@ struct platform_s2idle_ops {
+ 	void (*restore_early)(void);
+ 	void (*restore)(void);
+ 	void (*end)(void);
++	int (*screen_on)(void);
+ };
+ 
+ #ifdef CONFIG_SUSPEND
+@@ -160,6 +162,9 @@ extern unsigned int pm_suspend_global_flags;
+ #define PM_SUSPEND_FLAG_FW_RESUME	BIT(1)
+ #define PM_SUSPEND_FLAG_NO_PLATFORM	BIT(2)
+ 
++int platform_suspend_screen_off(void);
++int platform_suspend_screen_on(void);
++
+ static inline void pm_suspend_clear_flags(void)
+ {
+ 	pm_suspend_global_flags = 0;
+diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
+index 09f8397bae15..19734b297527 100644
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@ -254,6 +254,18 @@ static bool sleep_state_supported(suspend_state_t state)
+ 	       (valid_state(state) && !cxl_mem_active());
+ }
+ 
++int platform_suspend_screen_off(void)
++{
++	return s2idle_ops && s2idle_ops->screen_off ? s2idle_ops->screen_off() : 0;
++}
++EXPORT_SYMBOL_GPL(platform_suspend_screen_off);
++
++int platform_suspend_screen_on(void)
++{
++	return s2idle_ops && s2idle_ops->screen_on ? s2idle_ops->screen_on() : 0;
++}
++EXPORT_SYMBOL_GPL(platform_suspend_screen_on);
++
+ static int platform_suspend_prepare(suspend_state_t state)
+ {
+ 	return state != PM_SUSPEND_TO_IDLE && suspend_ops->prepare ?
+-- 
+2.46.1
+
+
+From 487bbe29975a115e7af69c07acc8888f10f77d93 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <lkml@antheas.dev>
+Date: Thu, 19 Sep 2024 00:02:32 +0200
+Subject: [PATCH v2 2/4] acpi/x86: s2idle: handle screen off/on calls outside
+ of suspend sequence
+
+Currently, the screen off/on calls are handled within the suspend
+sequence, which is a deviation from Windows. This causes issues with
+certain devices, such as the ROG Ally, which expects this call to be
+executed with the kernel fully awake. The subsequent half-suspended
+state makes the controller of the device to fail to suspend properly.
+
+This patch calls the screen off/on callbacks before entering the suspend
+sequence, which fixes this issue. In addition, it opens the possibility
+of modelling a state such as "Screen Off" that mirrors Windows, as the
+callbacks will be accessible and validated to work outside of the
+suspend sequence.
+
+Suggested-by: Mario Limonciello <mario.limonciello@amd.com>
+Signed-off-by: Antheas Kapenekakis <lkml@antheas.dev>
+---
+ kernel/power/suspend.c | 16 ++++++++++++++++
+ 1 file changed, 16 insertions(+)
+
+diff --git a/kernel/power/suspend.c b/kernel/power/suspend.c
+index 19734b297527..2e391c1b1d20 100644
+--- a/kernel/power/suspend.c
++++ b/kernel/power/suspend.c
+@@ -507,6 +507,20 @@ int suspend_devices_and_enter(suspend_state_t state)
+ 
+ 	pm_suspend_target_state = state;
+ 
++	/*
++	 * Linux does not have the concept of a "Screen Off" state, so call
++	 * the platform functions for screen off prior to beginning the suspend
++	 * sequence, mirroring Windows which calls them outside of it as well.
++	 *
++	 * If Linux ever gains a "Screen Off" state, the following callbacks can
++	 * be replaced with a call that checks if we are in "Screen Off", in which
++	 * case they will NOOP and if not call them as a fallback.
++	 *
++	 * In case of an error, since these calls are not part of the suspend
++	 * sequence, do not bail.
++	 */
++	platform_suspend_screen_off();
++
+ 	if (state == PM_SUSPEND_TO_IDLE)
+ 		pm_set_suspend_no_platform();
+ 
+@@ -540,6 +554,8 @@ int suspend_devices_and_enter(suspend_state_t state)
+  Close:
+ 	platform_resume_end(state);
+ 	pm_suspend_target_state = PM_SUSPEND_ON;
++
++	platform_suspend_screen_on();
+ 	return error;
+ 
+  Recover_platform:
+-- 
+2.46.1
+
+
+From 7ea23d70a9d945ff1b80290a1dd65af313d21172 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <lkml@antheas.dev>
+Date: Thu, 19 Sep 2024 00:22:03 +0200
+Subject: [PATCH v2 3/4] acpi/x86: s2idle: call screen on and off as part of
+ callbacks
+
+Move the screen on and off calls into dedicated callbacks that gate
+the ACPI mutex, so they can be called outside of the suspend path.
+This fixes issues on certain devices that expect kernel drivers to be
+fully active during the calls, and allows for the flexibility of calling
+them as part of a more elaborate userspace suspend sequence (such as
+with "Screen Off" in Windows Modern Standby).
+
+Co-developed-by: Mario Limonciello <mario.limonciello@amd.com>
+Signed-off-by: Antheas Kapenekakis <lkml@antheas.dev>
+---
+ drivers/acpi/x86/s2idle.c | 65 ++++++++++++++++++++++++++++++---------
+ 1 file changed, 50 insertions(+), 15 deletions(-)
+
+diff --git a/drivers/acpi/x86/s2idle.c b/drivers/acpi/x86/s2idle.c
+index dd0b40b9bbe8..6b28d8b892d8 100644
+--- a/drivers/acpi/x86/s2idle.c
++++ b/drivers/acpi/x86/s2idle.c
+@@ -60,6 +60,7 @@ static int lps0_dsm_func_mask;
+ static guid_t lps0_dsm_guid_microsoft;
+ static int lps0_dsm_func_mask_microsoft;
+ static int lps0_dsm_state;
++static bool lsp0_dsm_in_screen_off;
+ 
+ /* Device constraint entry structure */
+ struct lpi_device_info {
+@@ -539,15 +540,16 @@ static struct acpi_scan_handler lps0_handler = {
+ 	.attach = lps0_device_attach,
+ };
+ 
+-int acpi_s2idle_prepare_late(void)
++static int acpi_s2idle_screen_off(void)
+ {
+-	struct acpi_s2idle_dev_ops *handler;
+-
+ 	if (!lps0_device_handle || sleep_no_lps0)
+ 		return 0;
+ 
+-	if (pm_debug_messages_on)
+-		lpi_check_constraints();
++	if (unlikely(WARN_ON(lsp0_dsm_in_screen_off)))
++		return -EINVAL;
++
++	lsp0_dsm_in_screen_off = true;
++	acpi_scan_lock_acquire();
+ 
+ 	/* Screen off */
+ 	if (lps0_dsm_func_mask > 0)
+@@ -560,6 +562,47 @@ int acpi_s2idle_prepare_late(void)
+ 		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_OFF,
+ 				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
+ 
++	acpi_scan_lock_release();
++
++	return 0;
++}
++
++static int acpi_s2idle_screen_on(void)
++{
++	if (!lps0_device_handle || sleep_no_lps0)
++		return 0;
++
++	if (unlikely(WARN_ON(!lsp0_dsm_in_screen_off)))
++		return -EINVAL;
++
++	lsp0_dsm_in_screen_off = false;
++	acpi_scan_lock_acquire();
++
++	/* Screen on */
++	if (lps0_dsm_func_mask_microsoft > 0)
++		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON,
++				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
++	if (lps0_dsm_func_mask > 0)
++		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
++					ACPI_LPS0_SCREEN_ON_AMD :
++					ACPI_LPS0_SCREEN_ON,
++					lps0_dsm_func_mask, lps0_dsm_guid);
++
++	acpi_scan_lock_release();
++
++	return 0;
++}
++
++int acpi_s2idle_prepare_late(void)
++{
++	struct acpi_s2idle_dev_ops *handler;
++
++	if (!lps0_device_handle || sleep_no_lps0)
++		return 0;
++
++	if (pm_debug_messages_on)
++		lpi_check_constraints();
++
+ 	/* LPS0 entry */
+ 	if (lps0_dsm_func_mask > 0 && acpi_s2idle_vendor_amd())
+ 		acpi_sleep_run_lps0_dsm(ACPI_LPS0_ENTRY_AMD,
+@@ -623,19 +666,10 @@ void acpi_s2idle_restore_early(void)
+ 		acpi_sleep_run_lps0_dsm(ACPI_LPS0_MS_EXIT,
+ 				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
+ 	}
+-
+-	/* Screen on */
+-	if (lps0_dsm_func_mask_microsoft > 0)
+-		acpi_sleep_run_lps0_dsm(ACPI_LPS0_SCREEN_ON,
+-				lps0_dsm_func_mask_microsoft, lps0_dsm_guid_microsoft);
+-	if (lps0_dsm_func_mask > 0)
+-		acpi_sleep_run_lps0_dsm(acpi_s2idle_vendor_amd() ?
+-					ACPI_LPS0_SCREEN_ON_AMD :
+-					ACPI_LPS0_SCREEN_ON,
+-					lps0_dsm_func_mask, lps0_dsm_guid);
+ }
+ 
+ static const struct platform_s2idle_ops acpi_s2idle_ops_lps0 = {
++	.screen_off = acpi_s2idle_screen_off,
+ 	.begin = acpi_s2idle_begin,
+ 	.prepare = acpi_s2idle_prepare,
+ 	.prepare_late = acpi_s2idle_prepare_late,
+@@ -644,6 +678,7 @@ static const struct platform_s2idle_ops acpi_s2idle_ops_lps0 = {
+ 	.restore_early = acpi_s2idle_restore_early,
+ 	.restore = acpi_s2idle_restore,
+ 	.end = acpi_s2idle_end,
++	.screen_on = acpi_s2idle_screen_on,
+ };
+ 
+ void __init acpi_s2idle_setup(void)
+-- 
+2.46.1
+
+
+From 3153735388746f8033a08f1388f3ee31de8975a3 Mon Sep 17 00:00:00 2001
+From: Antheas Kapenekakis <lkml@antheas.dev>
+Date: Thu, 19 Sep 2024 00:29:59 +0200
+Subject: [PATCH v2 4/4] platform/x86: asus-wmi: remove Ally (1st gen) and Ally
+ X suspend quirk
+
+By moving the Display On/Off calls outside of the suspend sequence,
+the racing conditions that made the Ally controller suspend unreliable
+are completely fixed. This includes both when mcu_powersave is enabled
+and disabled. Therefore, remove the quirk that fixed them only when
+the mcu_powersave attribute was disabled.
+
+Reviewed-by: Mario Limonciello <mario.limonciello@amd.com>
+Signed-off-by: Antheas Kapenekakis <lkml@antheas.dev>
+---
+ drivers/platform/x86/asus-wmi.c | 54 ---------------------------------
+ 1 file changed, 54 deletions(-)
+
+diff --git a/drivers/platform/x86/asus-wmi.c b/drivers/platform/x86/asus-wmi.c
+index 37636e5a38e3..2c9656e0afda 100644
+--- a/drivers/platform/x86/asus-wmi.c
++++ b/drivers/platform/x86/asus-wmi.c
+@@ -137,29 +137,10 @@ module_param(fnlock_default, bool, 0444);
+ #define ASUS_MINI_LED_2024_STRONG	0x01
+ #define ASUS_MINI_LED_2024_OFF		0x02
+ 
+-/* Controls the power state of the USB0 hub on ROG Ally which input is on */
+-#define ASUS_USB0_PWR_EC0_CSEE "\\_SB.PCI0.SBRG.EC0.CSEE"
+-/* 300ms so far seems to produce a reliable result on AC and battery */
+-#define ASUS_USB0_PWR_EC0_CSEE_WAIT 1500
+-
+ static const char * const ashs_ids[] = { "ATK4001", "ATK4002", NULL };
+ 
+ static int throttle_thermal_policy_write(struct asus_wmi *);
+ 
+-static const struct dmi_system_id asus_ally_mcu_quirk[] = {
+-	{
+-		.matches = {
+-			DMI_MATCH(DMI_BOARD_NAME, "RC71L"),
+-		},
+-	},
+-	{
+-		.matches = {
+-			DMI_MATCH(DMI_BOARD_NAME, "RC72L"),
+-		},
+-	},
+-	{ },
+-};
+-
+ static bool ashs_present(void)
+ {
+ 	int i = 0;
+@@ -269,9 +250,6 @@ struct asus_wmi {
+ 	u32 tablet_switch_dev_id;
+ 	bool tablet_switch_inverted;
+ 
+-	/* The ROG Ally device requires the MCU USB device be disconnected before suspend */
+-	bool ally_mcu_usb_switch;
+-
+ 	enum fan_type fan_type;
+ 	enum fan_type gpu_fan_type;
+ 	enum fan_type mid_fan_type;
+@@ -4698,8 +4676,6 @@ static int asus_wmi_add(struct platform_device *pdev)
+ 	asus->egpu_enable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_EGPU);
+ 	asus->dgpu_disable_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_DGPU);
+ 	asus->kbd_rgb_state_available = asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_TUF_RGB_STATE);
+-	asus->ally_mcu_usb_switch = acpi_has_method(NULL, ASUS_USB0_PWR_EC0_CSEE)
+-						&& dmi_check_system(asus_ally_mcu_quirk);
+ 
+ 	if (asus_wmi_dev_is_present(asus, ASUS_WMI_DEVID_MINI_LED_MODE))
+ 		asus->mini_led_dev_id = ASUS_WMI_DEVID_MINI_LED_MODE;
+@@ -4892,34 +4868,6 @@ static int asus_hotk_resume(struct device *device)
+ 	return 0;
+ }
+ 
+-static int asus_hotk_resume_early(struct device *device)
+-{
+-	struct asus_wmi *asus = dev_get_drvdata(device);
+-
+-	if (asus->ally_mcu_usb_switch) {
+-		/* sleep required to prevent USB0 being yanked then reappearing rapidly */
+-		if (ACPI_FAILURE(acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB8)))
+-			dev_err(device, "ROG Ally MCU failed to connect USB dev\n");
+-		else
+-			msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
+-	}
+-	return 0;
+-}
+-
+-static int asus_hotk_prepare(struct device *device)
+-{
+-	struct asus_wmi *asus = dev_get_drvdata(device);
+-
+-	if (asus->ally_mcu_usb_switch) {
+-		/* sleep required to ensure USB0 is disabled before sleep continues */
+-		if (ACPI_FAILURE(acpi_execute_simple_method(NULL, ASUS_USB0_PWR_EC0_CSEE, 0xB7)))
+-			dev_err(device, "ROG Ally MCU failed to disconnect USB dev\n");
+-		else
+-			msleep(ASUS_USB0_PWR_EC0_CSEE_WAIT);
+-	}
+-	return 0;
+-}
+-
+ static int asus_hotk_restore(struct device *device)
+ {
+ 	struct asus_wmi *asus = dev_get_drvdata(device);
+@@ -4964,8 +4912,6 @@ static const struct dev_pm_ops asus_pm_ops = {
+ 	.thaw = asus_hotk_thaw,
+ 	.restore = asus_hotk_restore,
+ 	.resume = asus_hotk_resume,
+-	.resume_early = asus_hotk_resume_early,
+-	.prepare = asus_hotk_prepare,
+ };
+ 
+ /* Registration ***************************************************************/
+-- 
+2.46.1
+
